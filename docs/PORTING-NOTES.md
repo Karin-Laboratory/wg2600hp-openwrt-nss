@@ -14,3 +14,9 @@
 | FIB notifier | notifier登録・callbackの6.12 APIへ移行。IPv6 private helperはwrapperで接続。 |
 
 この表は設計上の要約であり、実機での各経路の動作確認結果ではない。詳細は各patchのcommit messageとhunkを参照すること。
+
+## NSS firmware 11.4 と IPQ806x driver の 11.0 表示
+
+この構成では、blobのprovenance/headerはNSS `11.4`である。一方、ACwifidude/nss-packages の `NSS-11.2-K5.15`、commit `2fcff66d5279156bc67034a3547528a5fd48b0b2` にあるqca-nss-drv MakefileのIPQ806x分岐を保っており、`TARGET_NSS_MINOR_VERSION=0`を設定してBuild/Configure時に生成するdriver export headerを `11.0` とする。
+
+これは11.4 blobを11.0 blobへ書き換える指定ではない。IPQ806x向けのdriver sourceとpatch列が、firmware header表示値とは別に、NSS 11.0 ABI向けの統計配列・互換分岐を選ぶ既存設計を持つためである。`0015-fix-mismatched-stats-for-nss-11.0-fw.patch` もこの選択を前提にする。最終成功buildでは、入力firmwareのSHA256、Configure後に生成されたdriver header、patch条件分岐、package manifestを静的確認したが、firmware load、probe、ABI動作、ECM offloadは未検証である。従ってこれは「意図した静的組み合わせ」の説明であり、実機互換性の証明ではない。

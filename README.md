@@ -1,5 +1,11 @@
 # WG2600HP NSS on OpenWrt 25.12.5
 
+What this is: a public development record for a WG2600HP NSS port.
+Target: NEC Aterm WG2600HP / Qualcomm IPQ8064.
+Base: OpenWrt 25.12.5 / Linux 6.12.94 with qca-nss-gmac, qca-nss-drv, and qca-nss-ecm.
+Build succeeds, but it is NOT tested on hardware. DO NOT FLASH.
+NSS firmware blobs are not redistributed; users must provide and verify them locally.
+
 > ## EXPERIMENTAL / UNTESTED ON HARDWARE
 >
 > **ビルド成功のみ確認済みです。実機へ flash しないでください。**
@@ -19,11 +25,11 @@ NEC Aterm WG2600HP（IPQ8064）向けに、OpenWrt 25.12.5 / Linux 6.12.94へ、
 
 これはprobe成功、boot成功、通信成功、offload成功を意味しません。
 
-## 再現対象と出典
+## 再現対象とupstream provenance
 
 | 項目 | 値 |
 |---|---|
-| OpenWrt | 25.12.5 / `f0a60eee`（build `r33051-f5dae5ece4`） |
+| OpenWrt | 25.12.5 / `f0a60eee2fe051741c643ea6118718aae1ef17fb`（build `r33051-f5dae5ece4`） |
 | Kernel | Linux 6.12.94 |
 | Target | `ipq806x/generic`, `DEVICE_nec_wg2600hp` |
 | Toolchain | GCC 14.3.0, musl, `arm_cortex-a15_neon-vfpv4` |
@@ -31,7 +37,19 @@ NEC Aterm WG2600HP（IPQ8064）向けに、OpenWrt 25.12.5 / Linux 6.12.94へ、
 | NSS GMAC | qca-nss-gmac `171767947467662f2407d0cfff26dfb136c3fb4a` |
 | NSS ECM | qca-nss-ecm `db66c47` |
 
-元にした実装は、ACwifidude の OpenWrt 23.05 NSS/QSDK 11系（WG2600HP/IPQ806x、Linux 5.15）と、その `nss-packages` 系列です。Codelinaro/QSDK由来のソースrevisionをOpenWrt 25.12.5へ取り込み、asvio/nbg7815-nssは設計上の参考に留めました。いずれも本リポジトリの上流コードの代替ではありません。
+`f0a60eee2fe051741c643ea6118718aae1ef17fb` はOpenWrt v25.12.5のrelease commitで、`r33051-f5dae5ece4` はそのtreeに埋め込まれたVERSION_CODEである。同じreleaseを指すため、両者は矛盾しない。
+
+| repository | branch/tag | commit | 利用/参考範囲 |
+|---|---|---|---|
+| [OpenWrt](https://github.com/openwrt/openwrt) | v25.12.5 | `f0a60eee2fe051741c643ea6118718aae1ef17fb` | clean base tree |
+| [ACwifidude/openwrt](https://github.com/ACwifidude/openwrt) | `openwrt-23.05-nss-qsdk11` | `cd265bb1a5229aec79aa675d9c2f0289ca75e684` | WG2600HP/IPQ806x DTS and 5.15 integration reference |
+| [ACwifidude/nss-packages](https://github.com/ACwifidude/nss-packages) | `NSS-11.2-K5.15` | `2fcff66d5279156bc67034a3547528a5fd48b0b2` | package layout, Config.in, firmware record, 11.0 IPQ806x driver selection |
+| Codelinaro/QSDK `nss-drv` | source date 2020-03-20 | `3cfb9f43` | driver source |
+| Codelinaro/QSDK `nss-gmac` | source date 2021-04-20 | `171767947467662f2407d0cfff26dfb136c3fb4a` | GMAC source |
+| Codelinaro/QSDK `qca-nss-ecm` | source date 2023-01-20 | `db66c47` | ECM source |
+| [asvio/nbg7815-nss](https://github.com/asvio/nbg7815-nss) | default branch at audit | `82f5118bd4eea40c64de36b967c89aea007c8cc6` | architecture and compatibility discussion only; IPQ807x/IPQ6018, not WG2600HP source |
+
+これらは、各componentのsource・patch・設計資料の出典または参考実装である。本リポジトリがそれらの上流であること、または上流の動作保証を引き継ぐことを意味しない。
 
 ## 6.12互換層の概要
 
@@ -49,15 +67,18 @@ NEC Aterm WG2600HP（IPQ8064）向けに、OpenWrt 25.12.5 / Linux 6.12.94へ、
 
 OpenWrt全体のコピーは収録していません。clean checkoutへ、対応するpackage overlay、patch、config fragmentを配置して再現します。
 
-1. OpenWrt 25.12.5を `f0a60eee` でcheckoutする。
-2. `packages/qca-nss-*` をOpenWrtの `package/kernel/qca-nss-*` へコピーする。
-3. 各patch directoryを対応するpackageの `patches/` へコピーする。
-4. `patches/openwrt-ipq806x/` を `target/linux/ipq806x/patches-6.12/` へコピーする。
-5. `config/wg2600hp.config.fragment` を適用する。
-6. firmware blobを入手元のライセンスに従って、`qca-nss-drv/files/nss-firmware/` に配置する。
-7. `make defconfig && make -j1 V=s` を実行する。
+一本道の手順と配置表は [`docs/BUILD.md`](docs/BUILD.md) にまとめています。clean checkoutとblobを用意した後、`OPENWRT_DIR=... NSS_FIRMWARE_DIR=... ./scripts/build.sh` の1コマンドで実行します。scriptは既存 `.config` や `build_dir` を受け付けず、公開fragmentから生成します。
 
-補助スクリプトは `scripts/build.sh` です。既定ではビルドディレクトリをリポジトリ外へ置き、`NSS_FIRMWARE_DIR` 未指定ならfirmwareを埋め込まず停止します。
+## Documentation
+
+- [Status](docs/STATUS.md)
+- [Build guide](docs/BUILD.md)
+- [Porting notes](docs/PORTING-NOTES.md)
+- [Patchset provenance](docs/PATCHSET.md)
+- [Hardware test TODO](docs/HARDWARE-TEST-TODO.md)
+- [Build result 2026-10-05](docs/BUILD-RESULT-20261005.txt)
+- [Firmware provenance](references/FIRMWARE.md)
+- [Recorded image SHA256](checksums/IMAGE-SHA256SUMS)
 
 ## 生成確認記録
 
@@ -80,5 +101,7 @@ OpenWrt全体のコピーは収録していません。clean checkoutへ、対�
 ## ライセンスと再配布
 
 OpenWrtおよび各ソースのライセンスは各上流ソースと同梱noticeに従います。NSS firmwareはQualcomm Atherosのバイナリで、同梱LICENSE.TXTには再配布条件と reverse engineering 禁止等の制限がありますが、公開リポジトリでの再配布許可をこの記録だけでは確定できません。そのため `qca-nss0.bin` / `qca-nss1.bin` は収録していません。取得元、revision、hash、配置方法だけを `references/FIRMWARE.md` に記載しています。
+
+公開再配布条件を十分確認できていないため、blobおよびblobを含む生成binaryは公開していません。生成image全体を一律に再配布禁止と断定するものではなく、利用者自身が各構成要素のライセンス条件を確認してください。
 
 本資料は研究・再現用の開発記録です。OpenWrt、Qualcomm、NECの公式サポートや実機互換性を示すものではありません。

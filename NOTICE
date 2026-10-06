@@ -1,0 +1,10 @@
+This is a development record, not a relicensed distribution of the complete
+OpenWrt/QCA/Qualcomm work. OpenWrt and Linux material remains under its
+upstream GPL-compatible licenses. Qualcomm Atheros/Codelinaro NSS material,
+ACwifidude material, and the Synology-derived NSS firmware retain their
+upstream terms. The repository does not grant patent, trademark, firmware,
+or reverse-engineering rights.
+
+The firmware license and notice supplied with the source record are copied in
+references/LICENSE.TXT and references/NOTICE.TXT. Firmware blobs are not
+included.

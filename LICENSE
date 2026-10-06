@@ -1,0 +1,7 @@
+This repository has no single blanket license.
+
+The documentation and shell scripts authored for this repository are
+copyright their authors. No blanket license is granted here; ask the authors
+before reusing project-authored material. The OpenWrt patches, QCA NSS
+sources/patches, notices, and firmware remain under their respective upstream
+licenses and notices. See NOTICE and THIRD-PARTY-NOTICES.md before reuse.
