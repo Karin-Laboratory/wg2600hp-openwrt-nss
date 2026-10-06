@@ -77,6 +77,7 @@ OpenWrt全体のコピーは収録していません。clean checkoutへ、対�
 - [Patchset provenance](docs/PATCHSET.md)
 - [Hardware test TODO](docs/HARDWARE-TEST-TODO.md)
 - [Build result 2026-10-05](docs/BUILD-RESULT-20261005.txt)
+- [Build result 2026-10-07](docs/BUILD-RESULT-20261007.txt)
 - [Firmware provenance](references/FIRMWARE.md)
 - [Recorded image SHA256](checksums/IMAGE-SHA256SUMS)
 

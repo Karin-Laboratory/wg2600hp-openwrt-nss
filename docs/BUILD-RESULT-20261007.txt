@@ -1,0 +1,47 @@
+# Clean-room build result — 2026-10-07
+
+## Result
+
+PASS: a dedicated clean OpenWrt tree at
+`f0a60eee2fe051741c643ea6118718aae1ef17fb` (OpenWrt 25.12.5) produced the
+WG2600HP target images and NSS packages.
+
+The public build script performed the checkout, firmware, overlay, feed, and
+configuration preparation. Its initial serial `make -j1 V=s` was interrupted
+after the host toolchain had progressed for a long time. The same untouched
+build state was then resumed with `make -j8 V=s`; it completed with exit code
+0. The final checks below were run directly against that tree.
+
+## Direct verification
+
+- target: `ipq806x/generic`, device `nec_wg2600hp`
+- manifest contains `kmod-qca-nss-drv`, `kmod-qca-nss-ecm-standard`, and
+  `kmod-qca-nss-gmac`
+- root filesystem contains `qca-nss-drv.ko`, `qca-nss-gmac.ko`, and `ecm.ko`
+- root filesystem contains `qca-nss0.bin` and `qca-nss1.bin`
+- firmware SHA256 matches the recorded local blobs:
+  - `qca-nss0.bin`: `265d0a87b527f7c6c441af166bcc8a762ee23bfdc515585de29034f214cd481d`
+  - `qca-nss1.bin`: `b09c5646550f9e7fbd916daf6f6a7975b66fdfd1faf0960b1e624b4708008b79`
+- generated files are valid U-Boot ARM uImages according to `file`
+
+## Generated images
+
+| Image | Size | SHA256 |
+|---|---:|---|
+| `openwrt-ipq806x-generic-nec_wg2600hp-initramfs-uImage` | 7,934,810 | `03c67de89a426420850acdfc9b7ce6e95483c66b1f648b11e189ffa374dc1eb2` |
+| `openwrt-ipq806x-generic-nec_wg2600hp-squashfs-sysupgrade.bin` | 8,323,615 | `30169ffaaa07abccc51515552873664c4434cf837fce03e39f0c775fa4cc266f` |
+
+The sysupgrade file is a U-Boot-wrapped image; running `unsquashfs` directly
+on the wrapper is therefore not a valid filesystem test. The OpenWrt image
+generation completed successfully, and the target manifest/rootfs staging
+checks above passed.
+
+The image hashes differ from the 2026-10-05 recorded build. This is not a
+failure: the documented reproducibility definition does not promise
+bit-identical images, only the same source/config/package provenance and
+required artifacts.
+
+## Scope boundary
+
+No device was flashed, rebooted, or otherwise operated. UART, TFTP, boot,
+NSS firmware loading, LAN/WAN, Wi-Fi, and ECM offload remain untested.
