@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 14:10:00 +0900
+Subject: [PATCH] qca-nss-ecm: include IPv6 public headers in implementations
+
+The IPv6 implementations already publish their entry points in the common
+headers. Include those headers so Linux 6.12's missing-prototypes check sees
+the declarations without changing the entry points or behavior.
+
+--- a/frontends/cmn/ecm_ipv6.c
++++ b/frontends/cmn/ecm_ipv6.c
+@@ -99,1 +99,2 @@
+ #include "ecm_front_end_ipv6.h"
++#include "ecm_ipv6.h"
+--- a/frontends/cmn/ecm_ported_ipv6.c
++++ b/frontends/cmn/ecm_ported_ipv6.c
+@@ -96,1 +96,2 @@
+ #include "ecm_interface.h"
++#include "ecm_ported_ipv6.h"
+-- 
+2.43.0

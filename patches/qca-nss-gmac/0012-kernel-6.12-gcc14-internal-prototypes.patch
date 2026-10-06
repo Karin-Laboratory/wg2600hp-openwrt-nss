@@ -1,0 +1,8 @@
+--- a/ipq806x/nss_gmac_tx_rx_offload.c
++++ b/ipq806x/nss_gmac_tx_rx_offload.c
+@@ -234,1 +234,1 @@
+-void nss_gmac_update_prec_stats(struct nss_gmac_dev *gmacdev, struct sk_buff *skb, uint8_t dir)
++static void nss_gmac_update_prec_stats(struct nss_gmac_dev *gmacdev, struct sk_buff *skb, uint8_t dir)
+@@ -846,1 +846,1 @@
+-void nss_gmac_start_up(struct nss_gmac_dev *gmacdev)
++static void nss_gmac_start_up(struct nss_gmac_dev *gmacdev)

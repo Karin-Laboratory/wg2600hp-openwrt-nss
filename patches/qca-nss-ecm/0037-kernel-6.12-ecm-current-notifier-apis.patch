@@ -1,0 +1,144 @@
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -27,6 +27,9 @@
+ #include <linux/kthread.h>
+ #include <linux/pkt_sched.h>
+ #include <linux/string.h>
++#include <linux/version.h>
++#include <net/switchdev.h>
++#include <net/netevent.h>
+ #include <net/ip6_route.h>
+ #include <net/ip6_fib.h>
+ #include <net/ipv6.h>
+@@ -7333,6 +7336,7 @@
+  *	When a MAC address is moved to another interface.
+  *
+  */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static int ecm_interface_node_br_fdb_notify_event(struct notifier_block *nb,
+ 					       unsigned long event,
+ 					       void *data)
+@@ -7389,6 +7393,47 @@
+ };
+ #endif
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static int ecm_interface_switchdev_fdb_notify_event(struct notifier_block *nb,
++							unsigned long event,
++							void *data)
++{
++	struct switchdev_notifier_fdb_info *fdb = data;
++
++	if (event != SWITCHDEV_FDB_ADD_TO_BRIDGE &&
++	    event != SWITCHDEV_FDB_DEL_TO_BRIDGE)
++		return NOTIFY_DONE;
++	if (!fdb || !fdb->addr || fdb->is_local)
++		return NOTIFY_DONE;
++	ecm_interface_node_connections_defunct((uint8_t *)fdb->addr,
++			ECM_DB_IP_VERSION_IGNORE);
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block ecm_interface_switchdev_fdb_nb = {
++	.notifier_call = ecm_interface_switchdev_fdb_notify_event,
++};
++
++static int ecm_interface_netevent_notify_event(struct notifier_block *nb,
++							unsigned long event,
++							void *data)
++{
++	struct neighbour *neigh = data;
++
++	if (event != NETEVENT_NEIGH_UPDATE || !neigh ||
++	    neigh->nud_state == NUD_NOARP || neigh->ha[0] == 0)
++		return NOTIFY_DONE;
++	ecm_interface_node_connections_defunct(neigh->ha,
++			ECM_DB_IP_VERSION_IGNORE);
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block ecm_interface_netevent_nb = {
++	.notifier_call = ecm_interface_netevent_notify_event,
++};
++#endif
++#endif
++
+ #ifdef ECM_MULTICAST_ENABLE
+ /*
+  * ecm_interface_multicast_find_outdated_iface_instances()
+@@ -7693,6 +7738,7 @@
+ #endif
+ 
+ #ifdef ECM_DB_XREF_ENABLE
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ /*
+  * ecm_interface_neigh_mac_update_notify_event()
+  *	Neighbour mac address change handler.
+@@ -7738,6 +7784,7 @@
+ 	.notifier_call = ecm_interface_neigh_mac_update_notify_event,
+ };
+ #endif
++#endif
+ 
+ /*
+  * ecm_interface_wifi_event_iwevent
+@@ -8598,13 +8645,21 @@
+ 	 * register the  FDB event handlers.
+ 	 */
+ 	if (ecm_front_end_is_feature_supported(ECM_FE_FEATURE_BRIDGE)) {
++	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++		register_switchdev_notifier(&ecm_interface_switchdev_fdb_nb);
++	#else
+ 		br_fdb_update_register_notify(&ecm_interface_node_br_fdb_update_nb);
+ 		br_fdb_register_notify(&ecm_interface_node_br_fdb_delete_nb);
++	#endif
+ 	}
+ #endif
+ #ifdef ECM_DB_XREF_ENABLE
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	register_netevent_notifier(&ecm_interface_netevent_nb);
++#else
+ 	neigh_mac_update_register_notify(&ecm_interface_neigh_mac_update_nb);
+ #endif
++#endif
+ #ifdef ECM_INTERFACE_OVS_BRIDGE_ENABLE
+ 	ovsmgr_notifier_register(&ecm_interface_ovs_notifier);
+ #endif
+@@ -8627,8 +8682,12 @@
+ 
+ 	unregister_netdevice_notifier(&ecm_interface_netdev_notifier);
+ #ifdef ECM_DB_XREF_ENABLE
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	unregister_netevent_notifier(&ecm_interface_netevent_nb);
++#else
+ 	neigh_mac_update_unregister_notify(&ecm_interface_neigh_mac_update_nb);
+ #endif
++#endif
+ 
+ #if defined(ECM_DB_XREF_ENABLE) && defined(ECM_BAND_STEERING_ENABLE)
+ 	/*
+@@ -8636,8 +8695,12 @@
+ 	 * unregister the  FDB event handlers.
+ 	 */
+ 	if (ecm_front_end_is_feature_supported(ECM_FE_FEATURE_BRIDGE)) {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++		unregister_switchdev_notifier(&ecm_interface_switchdev_fdb_nb);
++#else
+ 		br_fdb_update_unregister_notify(&ecm_interface_node_br_fdb_update_nb);
+ 		br_fdb_unregister_notify(&ecm_interface_node_br_fdb_delete_nb);
++#endif
+ 	}
+ #endif
+ 	ecm_interface_wifi_event_stop();
+--- a/ecm_interface.h
++++ b/ecm_interface.h
+@@ -16,6 +16,9 @@
+  **************************************************************************
+  */
+ 
++int ecm_interface_init(void);
++void ecm_interface_exit(void);
++
+ extern int ecm_interface_src_check;	/* Source interface check flag */
+ #if defined(CONFIG_NET_CLS_ACT) && defined(ECM_CLASSIFIER_DSCP_IGS)
+ extern int ecm_interface_igs_enabled;	/* IGS enabled check flag */

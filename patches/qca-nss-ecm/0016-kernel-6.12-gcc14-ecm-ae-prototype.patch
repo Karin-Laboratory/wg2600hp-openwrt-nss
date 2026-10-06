@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 07:00:00 +0900
+Subject: [PATCH] qca-nss-ecm: declare external AE selector prototype
+
+GCC 14 enables missing-prototypes diagnostics for the example module.  The
+selector is intentionally exported through the public AE callback interface,
+so declare it in the public header rather than making the definition static.
+
+---
+ exports/ecm_ae_classifier_public.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- a/exports/ecm_ae_classifier_public.h
++++ b/exports/ecm_ae_classifier_public.h
+@@ -76,6 +76,11 @@ struct ecm_ae_classifier_info {
+ 	uint16_t flag;				/**< Flow type flag. */
+ };
+ 
++/**
++ * Select the acceleration engine for a flow.
++ */
++ecm_ae_classifier_result_t ecm_ae_select(struct ecm_ae_classifier_info *info);
++
+ /**
+ * ECM AE classifier results.
+ */
+-- 
+2.43.0

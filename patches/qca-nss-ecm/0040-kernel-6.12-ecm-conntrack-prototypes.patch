@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 14:00:00 +0900
+Subject: [PATCH] qca-nss-ecm: declare conntrack event prototypes
+
+Declare exported conntrack event entry points in the shared header so the
+Linux 6.12 missing-prototypes warning does not reject the module.
+
+--- a/ecm_conntrack_notifier.h
++++ b/ecm_conntrack_notifier.h
+@@ -14,6 +14,10 @@
+  ***************************************************************************
+  */
+ 
++struct nf_conn;
++
++extern int ecm_conntrack_ipv6_event(unsigned long events, struct nf_conn *ct);
++extern int ecm_conntrack_ipv4_event(unsigned long events, struct nf_conn *ct);
+ extern void ecm_conntrack_notifier_stop(int num);
+ extern int ecm_conntrack_notifier_init(struct dentry *dentry);
+ extern void ecm_conntrack_notifier_exit(void);
+--- a/ecm_conntrack_notifier.c
++++ b/ecm_conntrack_notifier.c
+@@ -67,3 +67,4 @@
+ 
+ #include "ecm_types.h"
++#include "ecm_conntrack_notifier.h"
+ #include "ecm_db_types.h"
+-- 
+2.43.0

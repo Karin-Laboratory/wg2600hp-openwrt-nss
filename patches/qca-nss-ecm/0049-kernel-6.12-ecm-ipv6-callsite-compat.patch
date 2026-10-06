@@ -1,0 +1,20 @@
+Subject: [PATCH] ecm: call IPv6 compatibility wrappers
+
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -827,1 +827,1 @@ struct net_device *ecm_interface_ipv6_dev_find_and_hold(struct net *net, struct in6_addr *addr,
+-	ifp = ipv6_get_ifaddr(net, addr, NULL, strict);
++	ifp = ecm_ipv6_get_ifaddr(net, addr, NULL, strict);
+@@ -832,1 +832,1 @@ struct net_device *ecm_interface_ipv6_dev_find_and_hold(struct net *net, struct in6_addr *addr,
+-		in6_ifa_put(ifp);
++		ecm_in6_ifa_put(ifp);
+@@ -840,1 +840,1 @@ struct net_device *ecm_interface_ipv6_dev_find_and_hold(struct net *net, struct in6_addr *addr,
+-	in6_ifa_put(ifp);
++	ecm_in6_ifa_put(ifp);
+@@ -1428,5 +1428,1 @@ void ecm_interface_send_neighbour_solicitation(struct net_device *dev, ip_addr_t dest_addr)
+-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0))
+-	ndisc_send_ns(dev, &dst_addr, &mc_dst_addr, &src_addr);
+-#else
+-	ndisc_send_ns(dev, &dst_addr, &mc_dst_addr, &src_addr, 0);
+-#endif
++	ecm_ndisc_send_ns(dev, &dst_addr, &mc_dst_addr, &src_addr, 0);

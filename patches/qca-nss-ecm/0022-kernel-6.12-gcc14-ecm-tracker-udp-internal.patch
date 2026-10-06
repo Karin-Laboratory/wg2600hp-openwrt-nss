@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 08:35:00 +0900
+Subject: [PATCH] qca-nss-ecm: mark UDP tracker implementation helpers static
+
+These callbacks and DPI helpers are only referenced inside
+ecm_tracker_udp.c.  Make their linkage match their actual scope so GCC14's
+missing-prototypes diagnostic does not reject the module.
+
+--- a/ecm_tracker_udp.c
++++ b/ecm_tracker_udp.c
+@@ -248,1 +248,1 @@
+-void ecm_tracker_udp_discard_all(struct ecm_tracker_udp_internal_instance *utii)
++static void ecm_tracker_udp_discard_all(struct ecm_tracker_udp_internal_instance *utii)
+@@ -290,1 +290,1 @@
+-void ecm_tracker_udp_ref_callback(struct ecm_tracker_instance *ti)
++static void ecm_tracker_udp_ref_callback(struct ecm_tracker_instance *ti)
+@@ -341,1 +341,1 @@
+-int ecm_tracker_udp_deref_callback(struct ecm_tracker_instance *ti)
++static int ecm_tracker_udp_deref_callback(struct ecm_tracker_instance *ti)
+@@ -399,1 +399,1 @@
+-int32_t ecm_tracker_udp_datagram_size_get(struct ecm_tracker_udp_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
++static int32_t ecm_tracker_udp_datagram_size_get(struct ecm_tracker_udp_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
+@@ -447,1 +447,1 @@
+-int ecm_tracker_udp_datagram_read(struct ecm_tracker_udp_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
++static int ecm_tracker_udp_datagram_read(struct ecm_tracker_udp_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
+-- 
+2.43.0

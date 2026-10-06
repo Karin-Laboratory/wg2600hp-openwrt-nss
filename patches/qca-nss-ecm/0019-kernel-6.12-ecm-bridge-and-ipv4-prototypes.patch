@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] kernel-6.12: update ECM bridge helpers and IPv4 prototypes
+
+Linux 6.12 no longer exposes the legacy bridge lookup helpers. Use the
+public FDB lookup and bridge-port flag APIs, and include the existing IPv4
+public header in its implementation file.
+
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -5129,1 +5129,1 @@
+-		new_dest_dev = br_port_dev_get(bridge, dest_node_addr, skb, serial);
++		new_dest_dev = br_fdb_find_port(bridge, dest_node_addr, 0);
+@@ -5301,2 +5301,2 @@
+-					next_dev = br_port_dev_get(dest_dev,
+-						mac_addr, skb, serial);
++					next_dev = br_fdb_find_port(dest_dev,
++						mac_addr, 0);
+@@ -6023,1 +6023,1 @@
+-		new_dest_dev = br_port_dev_get(bridge, dest_node_addr, skb, serial);
++		new_dest_dev = br_fdb_find_port(bridge, dest_node_addr, 0);
+@@ -6175,2 +6175,2 @@
+-					next_dev = br_port_dev_get(dest_dev,
+-						mac_addr, skb, serial);
++					next_dev = br_fdb_find_port(dest_dev,
++						mac_addr, 0);
+--- a/frontends/cmn/ecm_ipv4.c
++++ b/frontends/cmn/ecm_ipv4.c
+@@ -100,1 +100,2 @@
++#include "ecm_ipv4.h"
+ #include "ecm_ported_ipv4.h"
+@@ -1784,1 +1784,1 @@
+-	in = br_port_dev_get(bridge, skb_eth_hdr->h_source, NULL, 0);
++	in = br_fdb_find_port(bridge, skb_eth_hdr->h_source, 0);
+@@ -1797,1 +1797,1 @@
+-		if (!br_is_hairpin_enabled(in)) {
++		if (!br_port_flag_is_set(in, BR_HAIRPIN_MODE)) {
+@@ -1822,1 +1822,1 @@
+-		if (!br_fdb_has_entry((struct net_device *)out, skb_eth_hdr->h_dest, 0)) {
++		if (!br_fdb_find_port((struct net_device *)out, skb_eth_hdr->h_dest, 0)) {
+--- a/frontends/cmn/ecm_ipv6.c
++++ b/frontends/cmn/ecm_ipv6.c
+@@ -1486,1 +1486,1 @@
+-	in = br_port_dev_get(bridge, skb_eth_hdr->h_source, NULL, 0);
++	in = br_fdb_find_port(bridge, skb_eth_hdr->h_source, 0);
+@@ -1499,1 +1499,1 @@
+-		if (!br_is_hairpin_enabled(in)) {
++		if (!br_port_flag_is_set(in, BR_HAIRPIN_MODE)) {
+@@ -1524,1 +1524,1 @@
+-		if (!br_fdb_has_entry((struct net_device *)out, skb_eth_hdr->h_dest, 0)) {
++		if (!br_fdb_find_port((struct net_device *)out, skb_eth_hdr->h_dest, 0)) {
+-- 
+2.43.0
+

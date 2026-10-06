@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 14:50:00 +0900
+Subject: [PATCH] qca-nss-ecm: retain DSCP mark state and declare lifecycle APIs
+
+The Linux 6.12 DSCP extension still carries flow/reply mark values, but no
+longer exports the downstream MARK flag name. Preserve ECM's mark-valid bit
+contract locally and declare existing classifier lifecycle entry points.
+
+--- a/ecm_classifier_dscp.c
++++ b/ecm_classifier_dscp.c
+@@ -51,1 +51,5 @@
+ #include <net/netfilter/nf_conntrack_dscpremark_ext.h>
++
++#ifndef NF_CT_DSCPREMARK_EXT_MARK
++#define NF_CT_DSCPREMARK_EXT_MARK 0x4
++#endif
+--- a/ecm_classifier_nl.h
++++ b/ecm_classifier_nl.h
+@@ -15,1 +15,3 @@
+  */
++extern int ecm_classifier_nl_rules_init(struct dentry *dentry);
++extern void ecm_classifier_nl_rules_exit(void);
+--- a/ecm_classifier_dscp.h
++++ b/ecm_classifier_dscp.h
+@@ -18,1 +18,3 @@
+ */
++extern int ecm_classifier_dscp_init(struct dentry *dentry);
++extern void ecm_classifier_dscp_exit(void);
+-- 
+2.43.0

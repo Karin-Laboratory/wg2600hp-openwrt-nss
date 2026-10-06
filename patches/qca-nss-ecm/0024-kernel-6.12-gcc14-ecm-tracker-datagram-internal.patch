@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 09:15:00 +0900
+Subject: [PATCH] qca-nss-ecm: mark datagram tracker helpers static
+
+These datagram tracker helpers are implementation-local and are consumed
+through the tracker callback table.  Match their linkage to that scope for
+GCC14's missing-prototypes check.
+
+--- a/ecm_tracker_datagram.c
++++ b/ecm_tracker_datagram.c
+@@ -206,1 +206,1 @@
+-void ecm_tracker_datagram_discard_all(struct ecm_tracker_datagram_internal_instance *dtii)
++static void ecm_tracker_datagram_discard_all(struct ecm_tracker_datagram_internal_instance *dtii)
+@@ -367,1 +367,1 @@
+-int32_t ecm_tracker_datagram_datagram_size_get(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
++static int32_t ecm_tracker_datagram_datagram_size_get(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
+@@ -415,1 +415,1 @@
+-int ecm_tracker_datagram_datagram_read(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
++static int ecm_tracker_datagram_datagram_read(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
+@@ -469,1 +469,1 @@
+-bool ecm_tracker_datagram_datagram_add(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, struct sk_buff *skb)
++static bool ecm_tracker_datagram_datagram_add(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, struct sk_buff *skb)
+-- 
+2.43.0

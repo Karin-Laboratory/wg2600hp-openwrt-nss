@@ -1,0 +1,14 @@
+--- a/nss_freq.c
++++ b/nss_freq.c
+@@ -24,1 +24,2 @@
+ #include "nss_tx_rx_common.h"
++#include "nss_freq.h"
+@@ -205,1 +205,1 @@
+-void nss_freq_scale_frequency(struct nss_ctx_instance *nss_ctx, uint32_t inst_cnt)
++static void nss_freq_scale_frequency(struct nss_ctx_instance *nss_ctx, uint32_t inst_cnt)
+--- a/exports/nss_freq.h
++++ b/exports/nss_freq.h
+@@ -45,1 +45,3 @@
+ extern int8_t nss_freq_get_cpu_usage(uint32_t core_id);
++
++extern struct nss_ctx_instance *nss_freq_get_context(void);

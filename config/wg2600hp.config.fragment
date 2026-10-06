@@ -1,0 +1,8 @@
+CONFIG_TARGET_ipq806x=y
+CONFIG_TARGET_ipq806x_generic=y
+CONFIG_TARGET_ipq806x_generic_DEVICE_nec_wg2600hp=y
+CONFIG_TARGET_ROOTFS_INITRAMFS=y
+CONFIG_PACKAGE_kmod-qca-nss-gmac=y
+CONFIG_PACKAGE_kmod-qca-nss-drv=y
+CONFIG_PACKAGE_kmod-qca-nss-ecm-standard=y
+CONFIG_PACKAGE_linux-firmware-ath10k=y

@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 07:05:00 +0900
+Subject: [PATCH] qca-nss-ecm: include AE classifier declarations
+
+Build the implementation against its own internal header so GCC 14's
+missing-prototypes diagnostics validate the existing exported helpers.  The
+dummy callback is also part of that internal interface.
+
+---
+ frontends/cmn/ecm_ae_classifier.c | 1 +
+ frontends/cmn/ecm_ae_classifier.h | 2 ++
+ 2 files changed, 3 insertions(+)
+
+--- a/frontends/cmn/ecm_ae_classifier.c
++++ b/frontends/cmn/ecm_ae_classifier.c
+@@ -51,4 +51,5 @@
+ #include "ecm_interface.h"
+ #include "ecm_ipv4.h"
+ #include "ecm_ipv6.h"
++#include "ecm_ae_classifier.h"
+ 
+ DEFINE_SPINLOCK(ecm_ae_classifier_lock);
+--- a/frontends/cmn/ecm_ae_classifier.h
++++ b/frontends/cmn/ecm_ae_classifier.h
+@@ -17,4 +17,6 @@
+  **************************************************************************
+  */
+ 
++extern ecm_ae_classifier_result_t ecm_ae_classifier_dummy_get(struct ecm_ae_classifier_info *info);
++
+ extern struct ecm_ae_classifier_ops ae_ops;	/* Acceleration engine operations object */
+ 
+ extern void ecm_ae_classifier_select_info_fill(ip_addr_t src_ip, ip_addr_t dest_ip,
+-- 
+2.43.0

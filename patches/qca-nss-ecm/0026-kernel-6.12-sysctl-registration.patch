@@ -1,0 +1,10 @@
+--- a/frontends/ecm_front_end_common.c
++++ b/frontends/ecm_front_end_common.c
+@@ -880,1 +880,1 @@
+-	ecm_front_end_ctl_tbl_hdr = register_sysctl_table(ecm_front_end_common_root_dir);
++	ecm_front_end_ctl_tbl_hdr = register_sysctl("/net/ecm", ecm_front_end_sysctl_tbl);
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -8604,1 +8604,1 @@
+-	ecm_interface_ctl_table_header = register_sysctl_table(ecm_interface_root);
++	ecm_interface_ctl_table_header = register_sysctl("/net/ecm", ecm_interface_table);

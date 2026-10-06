@@ -1,0 +1,59 @@
+ButlerX WG2600HP NSS final integration verification
+Date: 2026-10-05 JST
+
+Target
+  OpenWrt: 25.12.5 (source f0a60eee; build r33051-f5dae5ece4)
+  Kernel: Linux 6.12.94
+  Target: ipq806x/generic, DEVICE_nec_wg2600hp
+
+Build result
+  target/linux/compile: PASS
+  package/compile: PASS
+  full make (kernel, DTB, modules, initramfs, sysupgrade): PASS
+  Log: build-root-20261005/log-full-image-final-20261005.txt
+
+Images
+  openwrt-ipq806x-generic-nec_wg2600hp-initramfs-uImage
+    size 7938306 bytes
+    sha256 a3219fabd11a71917b9857ee731d47706468629a06969c20acf17a28b3c662fd
+  openwrt-ipq806x-generic-nec_wg2600hp-squashfs-sysupgrade.bin
+    size 8323615 bytes
+    sha256 833d4b2772bafef9360e88e8e89c739ec223d7c72a32bdf5bf5e2c8c1b2e8122
+  file(1) identifies both images as ARM OpenWrt Linux-6.12.94 uImages.
+
+Image contents
+  Manifest contains:
+    kernel 6.12.94~301d5e03aaa4d64b8d016d00437196f7-r1
+    kmod-qca-nss-drv 2020.03.20-r0
+    kmod-qca-nss-gmac 6.12.94.2021.04.20~17176794-r1
+    kmod-qca-nss-ecm-standard 6.12.94.2023.01.20~db66c47-r1
+  Direct squashfs listing at offset 3653202 confirms:
+    lib/modules/6.12.94/qca-nss-drv.ko (256668 bytes)
+    lib/modules/6.12.94/qca-nss-gmac.ko (71460 bytes)
+    lib/modules/6.12.94/ecm.ko (457044 bytes)
+    lib/firmware/qca-nss0.bin (544712 bytes)
+    lib/firmware/qca-nss1.bin (218860 bytes)
+
+DTS/DTB
+  DTB: build-root-20261005/build_dir/target-arm_cortex-a15+neon-vfpv4_musl_eabi/linux-ipq806x_generic/image-qcom-ipq8064-wg2600hp.dtb
+  DTB size 34754 bytes
+  DTB sha256 c53620d1de38af6356a9251c60b601cd133a31fd5d231e9e955e4369dffbead7
+  NSS common/core nodes: nss_common@03000000, nss0 (0x36000000/IRQ 213,232), nss1 (0x36400000/IRQ 214,233)
+  NSS load addresses/interface ids: nss0 0x40000000/id 0, nss1 0x40800000/id 1
+  GMAC: gmac1 NSS id 1, PCS 0, MDIO PHY 4, IRQ 223, NSS IRQ 255; gmac2 NSS id 2, PCS 1, MDIO PHY 0, IRQ 226, NSS IRQ 258
+  GMAC clocks/resets: current IPQ806x GCC/RPM NSS fabric clocks and existing GMAC clock/reset references retained
+  MDIO/DSA: official mdio0/qca8337 DSA retained; port 1 WAN, ports 2-5 LAN1-4, CPU port 0 via gmac1 RGMII and CPU port 6 via gmac2 SGMII
+  Reserved memory: official nss@40000000 16 MiB no-map retained
+  Custom patch: build-root-20261005/target/linux/ipq806x/patches-6.12/999-005-wg2600hp-nss-minimal-6.12.patch
+  Custom patch sha256 d477947eaf13bc9fb4d766e175992e82967d7f2e03c8374e7e0b3bb37cf15f86
+
+Package APK sha256
+  kmod-qca-nss-drv-2020.03.20-r0.apk f870144f2c8a0176e2941e3d7859763848fba2ff305fd6b3d9b7f3c2fd56930d
+  kmod-qca-nss-ecm-standard-6.12.94.2023.01.20~db66c47-r1.apk 1cc4e10fda454e4131a316e5197358776a2272df3f234f85e6806a205be74a90
+  kmod-qca-nss-gmac-6.12.94.2021.04.20~17176794-r1.apk b7fd67b3da194865e6d9d0af3ff51bc731c77693b4a9340f5416e96d652a9be8
+
+Original mac80211 stop
+  The earlier log ended with "make: *** wait: No child processes" and a terminated/Hangup mesh_hwmp.o job, without a compiler diagnostic. This was external process/session termination, not a dependency, disk, or mac80211 source error. At the time approximately 42 GiB was free. The resumed package compile completed successfully.
+
+Safety
+  No flash, erase, sysupgrade, TFTP, UART, or irreversible eFuse/security operation was performed.

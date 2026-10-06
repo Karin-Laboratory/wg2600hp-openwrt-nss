@@ -1,0 +1,40 @@
+--- a/frontends/ecm_front_end_common.c
++++ b/frontends/ecm_front_end_common.c
+@@ -862,14 +862,0 @@
+-static struct ctl_table ecm_front_end_common_root[] = {
+-	{
+-		.procname	= "ecm",
+-		.mode		= 0555,
+-		.child		= ecm_front_end_sysctl_tbl,
+-	},
+-	{ }
+-};
+-
+-static struct ctl_table ecm_front_end_common_root_dir[] = {
+-	{
+-		.procname		= "net",
+-		.mode			= 0555,
+-		.child			= ecm_front_end_common_root,
+-	},
+-	{ }
+-};
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -8090,17 +8090,0 @@
+-static struct ctl_table ecm_interface_root_dir[] = {
+-	{
+-		.procname		= "ecm",
+-		.mode			= 0555,
+-		.child			= ecm_interface_table,
+-	},
+-	{ }
+-};
+-
+-static struct ctl_table ecm_interface_root[] = {
+-	{
+-		.procname		= "net",
+-		.mode			= 0555,
+-		.child			= ecm_interface_root_dir,
+-	},
+-	{ }
+-};

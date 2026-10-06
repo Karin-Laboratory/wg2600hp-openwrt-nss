@@ -1,0 +1,5 @@
+--- a/nss_freq_stats.c
++++ b/nss_freq_stats.c
+@@ -20,1 +20,2 @@
+ #include "nss_stats.h"
++#include "nss_freq_stats.h"

@@ -1,0 +1,16 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 09:30:00 +0900
+Subject: [PATCH] qca-nss-ecm: declare exported tracker module helpers
+
+Declare the tracker module reference helpers in the public tracker header
+before their EXPORT_SYMBOL definitions.
+
+--- a/ecm_tracker.h
++++ b/ecm_tracker.h
+@@ -254,0 +255,3 @@
++void ecm_tracker_module_get(void);
++void ecm_tracker_module_put(void);
++
+-- 
+2.43.0

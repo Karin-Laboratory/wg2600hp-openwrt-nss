@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 15:10:00 +0900
+Subject: [PATCH] qca-nss-ecm: complete non-ported and state compatibility
+
+Use the common net_device extension accessor for IPv6 GRE classification and
+declare the existing non-ported callback and state lifecycle APIs.
+
+--- a/frontends/nss/ecm_nss_non_ported_ipv6.c
++++ b/frontends/nss/ecm_nss_non_ported_ipv6.c
+@@ -581,1 +581,1 @@
+-				if (dev->priv_flags_ext & IFF_EXT_GRE_V6_TAP) {
++				if (ecm_netdev_priv_flags_ext(dev) & IFF_EXT_GRE_V6_TAP) {
+--- a/frontends/nss/ecm_nss_non_ported_ipv6.h
++++ b/frontends/nss/ecm_nss_non_ported_ipv6.h
+@@ -19,1 +19,2 @@
+ */
++extern bool ecm_nss_non_ported_ipv6_connection_defunct_callback(void *arg, int *accel_mode);
+--- a/ecm_state.h
++++ b/ecm_state.h
+@@ -17,1 +17,3 @@
+ */
++extern int ecm_state_init(struct dentry *dentry);
++extern void ecm_state_exit(void);
+-- 
+2.43.0

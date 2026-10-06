@@ -1,0 +1,35 @@
+--- a/nss_hal/ipq806x/nss_hal_pvt.c
++++ b/nss_hal/ipq806x/nss_hal_pvt.c
+@@ -190,1 +190,1 @@
+-void nss_hal_scale_fabric(uint32_t work_frequency)
++static void nss_hal_scale_fabric(uint32_t work_frequency)
+@@ -232,1 +232,1 @@
+-void nss_hal_pm_support(uint32_t work_frequency)
++static void nss_hal_pm_support(uint32_t work_frequency)
+@@ -253,1 +253,1 @@
+-void nss_hal_freq_change(nss_work_t *my_work)
++static void nss_hal_freq_change(nss_work_t *my_work)
+@@ -1186,1 +1186,1 @@
+-	netif_napi_add(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi, 64);
++	netif_napi_add_weight(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi, 64);
+@@ -1194,1 +1194,1 @@
+-void __nss_hal_init_imem(struct nss_ctx_instance *nss_ctx)
++static void __nss_hal_init_imem(struct nss_ctx_instance *nss_ctx)
+@@ -1209,1 +1209,1 @@
+-bool __nss_hal_init_utcm_shared(struct nss_ctx_instance *nss_ctx, uint32_t *meminfo_start)
++static bool __nss_hal_init_utcm_shared(struct nss_ctx_instance *nss_ctx, uint32_t *meminfo_start)
+--- a/nss_hal/fsm9010/nss_hal_pvt.c
++++ b/nss_hal/fsm9010/nss_hal_pvt.c
+@@ -293,1 +293,1 @@
+-	netif_napi_add(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi, 64);
++	netif_napi_add_weight(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi, 64);
+--- a/nss_hal/ipq60xx/nss_hal_pvt.c
++++ b/nss_hal/ipq60xx/nss_hal_pvt.c
+@@ -617,1 +617,1 @@
+-		netif_napi_add(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi_non_queue, NSS_EMPTY_BUFFER_SOS_PROCESSING_WEIGHT);
++		netif_napi_add_weight(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi_non_queue, NSS_EMPTY_BUFFER_SOS_PROCESSING_WEIGHT);
+--- a/nss_hal/ipq807x/nss_hal_pvt.c
++++ b/nss_hal/ipq807x/nss_hal_pvt.c
+@@ -659,1 +659,1 @@
+-		netif_napi_add(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi_non_queue, NSS_EMPTY_BUFFER_SOS_PROCESSING_WEIGHT);
++		netif_napi_add_weight(&nss_ctx->napi_ndev, &int_ctx->napi, nss_core_handle_napi_non_queue, NSS_EMPTY_BUFFER_SOS_PROCESSING_WEIGHT);

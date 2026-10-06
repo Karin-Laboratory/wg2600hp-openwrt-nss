@@ -1,0 +1,121 @@
+Subject: [PATCH] net: export narrow ECM bridge and PPP compatibility APIs
+
+ECM's downstream integration needs to refresh a bridge FDB entry and query
+PPP/PPTP state. Keep those semantics while exposing only stable wrappers;
+do not export private structure layouts or disable the integrations.
+
+--- a/net/bridge/br_fdb.c
++++ b/net/bridge/br_fdb.c
+@@ -965,3 +965,25 @@
+ 	}
+ }
++
++void br_fdb_refresh(struct net_device *dev, const unsigned char *addr, u16 vid);
++void br_fdb_refresh(struct net_device *dev, const unsigned char *addr, u16 vid)
++{
++	struct net_bridge_port *port;
++	struct net_bridge_fdb_entry *fdb;
++
++	rcu_read_lock();
++	port = br_port_get_rcu(dev);
++	if (!port)
++		goto out;
++
++	fdb = br_fdb_find_rcu(port->br, addr, vid);
++	if (fdb && !test_bit(BR_FDB_LOCAL, &fdb->flags) &&
++	    !test_bit(BR_FDB_STATIC, &fdb->flags)) {
++		WRITE_ONCE(fdb->used, jiffies);
++		WRITE_ONCE(fdb->updated, jiffies);
++	}
++out:
++	rcu_read_unlock();
++}
++EXPORT_SYMBOL_GPL(br_fdb_refresh);
+ 
+ /* Dump information about entries, in response to GETNEIGH */
+ int br_fdb_dump(struct sk_buff *skb,
+--- a/drivers/net/ppp/ppp_generic.c
++++ b/drivers/net/ppp/ppp_generic.c
+@@ -290,3 +290,63 @@ static void ppp_ccp_closed(struct ppp *ppp);
+ static struct compressor *find_compressor(int type);
+ static void ppp_get_stats(struct ppp *ppp, struct ppp_stats *st);
++int ecm_ppp_is_multilink(struct net_device *dev);
++int ecm_ppp_hold_channels(struct net_device *dev,
++				  struct ppp_channel **channels, int count);
++void ecm_ppp_release_channels(struct ppp_channel **channels, int count);
++void ecm_ppp_update_stats(struct net_device *dev, u64 rx_packets,
++				u64 rx_bytes, u64 tx_packets, u64 tx_bytes,
++				u64 rx_errors, u64 rx_dropped, u64 tx_errors,
++				u64 tx_dropped);
++
++int ecm_ppp_is_multilink(struct net_device *dev)
++{
++	struct ppp *ppp = netdev_priv(dev);
++
++	return !!(READ_ONCE(ppp->flags) & SC_MULTILINK);
++}
++EXPORT_SYMBOL_GPL(ecm_ppp_is_multilink);
++
++int ecm_ppp_hold_channels(struct net_device *dev,
++				  struct ppp_channel **channels, int count)
++{
++	struct ppp *ppp = netdev_priv(dev);
++	struct channel *pch;
++	int n = 0;
++
++	rcu_read_lock();
++	list_for_each_entry_rcu(pch, &ppp->channels, clist) {
++		if (n == count)
++			break;
++		channels[n++] = READ_ONCE(pch->chan);
++	}
++	rcu_read_unlock();
++
++	return n;
++}
++EXPORT_SYMBOL_GPL(ecm_ppp_hold_channels);
++
++void ecm_ppp_release_channels(struct ppp_channel **channels, int count)
++{
++}
++EXPORT_SYMBOL_GPL(ecm_ppp_release_channels);
++
++void ecm_ppp_update_stats(struct net_device *dev, u64 rx_packets,
++				u64 rx_bytes, u64 tx_packets, u64 tx_bytes,
++				u64 rx_errors, u64 rx_dropped, u64 tx_errors,
++				u64 tx_dropped)
++{
++	struct pcpu_sw_netstats *tstats = this_cpu_ptr(dev->tstats);
++
++	u64_stats_update_begin(&tstats->syncp);
++	u64_stats_add(&tstats->rx_packets, rx_packets);
++	u64_stats_add(&tstats->rx_bytes, rx_bytes);
++	u64_stats_add(&tstats->tx_packets, tx_packets);
++	u64_stats_add(&tstats->tx_bytes, tx_bytes);
++	u64_stats_update_end(&tstats->syncp);
++	dev->stats.rx_errors += rx_errors;
++	dev->stats.rx_dropped += rx_dropped;
++	dev->stats.tx_errors += tx_errors;
++	dev->stats.tx_dropped += tx_dropped;
++}
++EXPORT_SYMBOL_GPL(ecm_ppp_update_stats);
+ static int ppp_create_interface(struct net *net, struct file *file, int *unit);
+--- a/drivers/net/ppp/pptp.c
++++ b/drivers/net/ppp/pptp.c
+@@ -69,2 +69,16 @@ static struct pppox_sock *lookup_chan(u16 call_id, __be32 s_addr)
+ 	return sock;
+ }
++
++int ecm_pptp_session_find(struct pptp_opt *out, u16 call_id, __be32 daddr);
++
++int ecm_pptp_session_find(struct pptp_opt *out, u16 call_id, __be32 daddr)
++{
++	struct pppox_sock *sock = lookup_chan(call_id, daddr);
++
++	if (!sock)
++		return -ENOENT;
++	*out = sock->proto.pptp;
++	sock_put(sk_pppox(sock));
++	return 0;
++}
++EXPORT_SYMBOL_GPL(ecm_pptp_session_find);

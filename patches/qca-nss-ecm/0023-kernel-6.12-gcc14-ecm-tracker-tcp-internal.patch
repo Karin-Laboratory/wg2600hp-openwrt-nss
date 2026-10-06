@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 08:50:00 +0900
+Subject: [PATCH] qca-nss-ecm: mark TCP tracker callbacks static
+
+The TCP tracker callbacks are assigned only within their implementation
+unit and are not exported.  Give them internal linkage for GCC14.
+
+--- a/ecm_tracker_tcp.c
++++ b/ecm_tracker_tcp.c
+@@ -574,1 +574,1 @@
+-void ecm_tracker_tcp_ref_callback(struct ecm_tracker_instance *ti)
++static void ecm_tracker_tcp_ref_callback(struct ecm_tracker_instance *ti)
+@@ -591,1 +591,1 @@
+-int ecm_tracker_tcp_deref_callback(struct ecm_tracker_instance *ti)
++static int ecm_tracker_tcp_deref_callback(struct ecm_tracker_instance *ti)
+-- 
+2.43.0

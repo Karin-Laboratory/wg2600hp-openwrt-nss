@@ -1,0 +1,44 @@
+--- a/nss_pptp_log.c
++++ b/nss_pptp_log.c
+@@ -20,1 +20,5 @@
+ #include "nss_core.h"
++#include <linux/notifier.h>
++#include "nss_tx_rx_common.h"
++#include <nss_pptp.h>
++#include "nss_pptp_log.h"
+--- a/nss_pptp.c
++++ b/nss_pptp.c
+@@ -46,1 +46,1 @@
+-void nss_pptp_session_debug_stats_sync(struct nss_ctx_instance *nss_ctx,
++static void nss_pptp_session_debug_stats_sync(struct nss_ctx_instance *nss_ctx,
+--- a/nss_ipv6.c
++++ b/nss_ipv6.c
+@@ -23,4 +23,7 @@
+ #include "nss_ipv6_stats.h"
+ #include "nss_ipv6_strings.h"
+ 
++extern nss_tx_status_t nss_ipv6_conn_inquiry(struct nss_ipv6_5tuple *ipv6_5t_p,
++				nss_ipv6_msg_callback_t cb);
++
+ #define NSS_IPV6_TX_MSG_TIMEOUT 1000	/* 1 sec timeout for IPv6 messages */
+@@ -597,1 +597,1 @@
+-static int nss_ipv6_accel_mode_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_ipv6_accel_mode_cfg_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+@@ -638,1 +638,1 @@
+-static int nss_ipv6_dscp_map_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_ipv6_dscp_map_cfg_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+@@ -649,1 +649,1 @@
+-		return nss_dscp_map_print(ctl, buffer, lenp, ppos, mapping);
++		return nss_dscp_map_print((struct ctl_table *)ctl, buffer, lenp, ppos, mapping);
+@@ -654,1 +654,1 @@
+-	ret = nss_dscp_map_parse(ctl, buffer, lenp, ppos, &out);
++	ret = nss_dscp_map_parse((struct ctl_table *)ctl, buffer, lenp, ppos, &out);
+--- a/nss_ipv6_strings.c
++++ b/nss_ipv6_strings.c
+@@ -20,6 +20,7 @@
+ #include "nss_core.h"
+ #include <nss_ipv6.h>
+ #include "nss_strings.h"
++#include "nss_ipv6_strings.h"
+ 
+ /*

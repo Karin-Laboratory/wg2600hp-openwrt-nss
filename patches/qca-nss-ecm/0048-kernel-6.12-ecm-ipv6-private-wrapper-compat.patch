@@ -1,0 +1,19 @@
+Subject: [PATCH] ecm: use Linux 6.12 IPv6 private wrappers
+
+Use narrow kernel wrappers for the IPv6 operations that are intentionally
+not exported by upstream 6.12. This retains ECM's referenced-address and
+neighbour-solicitation behaviour without exporting generic internals.
+
+--- a/ecm_types.h
++++ b/ecm_types.h
+@@ -70,2 +70,10 @@
+ extern void br_fdb_refresh(struct net_device *dev, const unsigned char *addr,
+ 				  u16 vid);
++
++extern struct inet6_ifaddr *ecm_ipv6_get_ifaddr(struct net *net,
++						const struct in6_addr *addr,
++						struct net_device *dev, int strict);
++extern void ecm_in6_ifa_put(struct inet6_ifaddr *ifp);
++extern void ecm_ndisc_send_ns(struct net_device *dev, const struct in6_addr *solicit,
++				      const struct in6_addr *daddr,
++				      const struct in6_addr *saddr, u64 nonce);

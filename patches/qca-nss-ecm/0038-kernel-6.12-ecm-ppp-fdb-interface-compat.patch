@@ -1,0 +1,653 @@
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -146,6 +146,49 @@
+ 
+ static struct ecm_interface_wifi_event __ewn;
+ 
++int ecm_ppp_channel_get_protocol(struct ppp_channel *channel)
++{
++	struct sock *sk;
++
++	if (!channel || !channel->private)
++		return -EINVAL;
++	sk = channel->private;
++	return sk->sk_protocol;
++}
++EXPORT_SYMBOL(ecm_ppp_channel_get_protocol);
++
++int ecm_pppoe_channel_addressing_get(struct ppp_channel *channel,
++					     struct pppoe_opt *addressing)
++{
++	struct pppox_sock *po;
++
++	if (!channel || !channel->private || !addressing)
++		return -EINVAL;
++	po = pppox_sk(channel->private);
++	if (po->sk.sk_protocol != PX_PROTO_OE)
++		return -EINVAL;
++	*addressing = po->proto.pppoe;
++	if (addressing->dev)
++		dev_hold(addressing->dev);
++	return 0;
++}
++EXPORT_SYMBOL(ecm_pppoe_channel_addressing_get);
++
++int ecm_pptp_channel_addressing_get(struct pptp_opt *addressing,
++					    struct ppp_channel *channel)
++{
++	struct pppox_sock *po;
++
++	if (!channel || !channel->private || !addressing)
++		return -EINVAL;
++	po = pppox_sk(channel->private);
++	if (po->sk.sk_protocol != PX_PROTO_PPTP)
++		return -EINVAL;
++	*addressing = po->proto.pptp;
++	return 0;
++}
++EXPORT_SYMBOL(ecm_pptp_channel_addressing_get);
++
+ #ifdef ECM_INTERFACE_IPSEC_GLUE_LAYER_SUPPORT_ENABLE
+ /*
+  * Get ipsecmgr tunnel netdevice method
+@@ -333,10 +376,10 @@
+ 	stats = this_cpu_ptr(vlan->vlan_pcpu_stats);
+ 
+ 	u64_stats_update_begin(&stats->syncp);
+-	stats->rx_packets += nlstats->rx_packets;
+-	stats->rx_bytes += nlstats->rx_bytes;
+-	stats->tx_packets += nlstats->tx_packets;
+-	stats->tx_bytes += nlstats->tx_bytes;
++	u64_stats_add(&stats->rx_packets, nlstats->rx_packets);
++	u64_stats_add(&stats->rx_bytes, nlstats->rx_bytes);
++	u64_stats_add(&stats->tx_packets, nlstats->tx_packets);
++	u64_stats_add(&stats->tx_bytes, nlstats->tx_bytes);
+ 	u64_stats_update_end(&stats->syncp);
+ }
+ #endif
+@@ -762,10 +805,10 @@
+ 	tstats = this_cpu_ptr(dev->tstats);
+ 
+ 	u64_stats_update_begin(&tstats->syncp);
+-	tstats->rx_packets += nlstats->rx_packets;
+-	tstats->rx_bytes += nlstats->rx_bytes;
+-	tstats->tx_packets += nlstats->tx_packets;
+-	tstats->tx_bytes += nlstats->tx_bytes;
++	u64_stats_add(&tstats->rx_packets, nlstats->rx_packets);
++	u64_stats_add(&tstats->rx_bytes, nlstats->rx_bytes);
++	u64_stats_add(&tstats->tx_packets, nlstats->tx_packets);
++	u64_stats_add(&tstats->tx_bytes, nlstats->tx_bytes);
+ 	u64_stats_update_end(&tstats->syncp);
+ }
+ #endif
+@@ -1254,7 +1297,8 @@
+ 	 * it is using to communicate with that IP address.
+ 	 */
+ 	ECM_IP_ADDR_TO_NIN4_ADDR(be_addr, addr);
+-	ecm_rt->rt.rtv4 = ip_route_output(&init_net, be_addr, 0, 0, 0);
++	ecm_rt->rt.rtv4 = ip_route_output(&init_net, be_addr, 0, 0, 0,
++					  RT_SCOPE_UNIVERSE);
+ 	if (IS_ERR(ecm_rt->rt.rtv4)) {
+ 		DEBUG_TRACE("No output route to: %pI4n\n", &be_addr);
+ 		return false;
+@@ -1448,7 +1492,8 @@
+ 	__be32 ipv4_addr;
+ 
+ 	ECM_IP_ADDR_TO_NIN4_ADDR(ipv4_addr, addr);
+-	rt = ip_route_output(&init_net, ipv4_addr, 0, 0, 0);
++	rt = ip_route_output(&init_net, ipv4_addr, 0, 0, 0,
++				      RT_SCOPE_UNIVERSE);
+ 	if (IS_ERR(rt)) {
+ 		return NULL;
+ 	}
+@@ -1511,7 +1556,7 @@
+ 	 * skip first pass of l2tp/pptp tunnel encapsulated traffic
+ 	 */
+ 	if (out->type == ARPHRD_PPP) {
+-		if (out->priv_flags_ext & IFF_EXT_PPP_PPTP) {
++		if (ecm_netdev_priv_flags_ext(out) & IFF_EXT_PPP_PPTP) {
+ 			return true;
+ 		}
+ 	}
+@@ -1522,7 +1567,7 @@
+ 	}
+ 
+ 	if (in->type == ARPHRD_PPP) {
+-		if (in->priv_flags_ext & IFF_EXT_PPP_PPTP) {
++		if (ecm_netdev_priv_flags_ext(in) & IFF_EXT_PPP_PPTP) {
+ 			dev_put(in);
+ 			return true;
+ 		}
+@@ -1560,7 +1605,7 @@
+ 	/*
+ 	 * skip first pass of l2tp/pptp tunnel encapsulated traffic
+ 	 */
+-	if (out->priv_flags_ext & flag) {
++	if (ecm_netdev_priv_flags_ext(out) & flag) {
+ 		return true;
+ 	}
+ 
+@@ -1569,7 +1614,7 @@
+ 		return true;
+ 	}
+ 
+-	if (in->priv_flags_ext & flag) {
++	if (ecm_netdev_priv_flags_ext(in) & flag) {
+ 		dev_put(in);
+ 		return true;
+ 	}
+@@ -1594,7 +1639,7 @@
+ 	/*
+ 	 * skip first pass of l2tp/pptp tunnel encapsulated traffic
+ 	 */
+-	if (out->priv_flags_ext & (IFF_EXT_PPP_L2TPV2 | IFF_EXT_PPP_L2TPV3 |
++	if (ecm_netdev_priv_flags_ext(out) & (IFF_EXT_PPP_L2TPV2 | IFF_EXT_PPP_L2TPV3 |
+ 			       IFF_EXT_PPP_PPTP)) {
+ 		return true;
+ 	}
+@@ -1604,7 +1649,7 @@
+ 		return true;
+ 	}
+ 
+-	if (in->priv_flags_ext & (IFF_EXT_PPP_L2TPV2 | IFF_EXT_PPP_L2TPV3 |
++	if (ecm_netdev_priv_flags_ext(in) & (IFF_EXT_PPP_L2TPV2 | IFF_EXT_PPP_L2TPV3 |
+ 			      IFF_EXT_PPP_PPTP)) {
+ 		dev_put(in);
+ 		return true;
+@@ -3274,7 +3319,7 @@
+ 		/*
+ 		 * GRE TAP?
+ 		 */
+-		if (dev->priv_flags_ext & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
++		if (ecm_netdev_priv_flags_ext(dev) & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
+ 			interface_type = feci->ae_interface_type_get(feci, dev);
+ 			ae_interface_num = feci->ae_interface_number_by_dev_type_get(dev, interface_type);
+ 
+@@ -3563,7 +3608,7 @@
+ 	/*
+ 	 * OVPN Tunnel?
+ 	 */
+-	if ((dev_type == ARPHRD_NONE) && (dev->priv_flags_ext & IFF_EXT_TUN_TAP)) {
++	if ((dev_type == ARPHRD_NONE) && (ecm_netdev_priv_flags_ext(dev) & IFF_EXT_TUN_TAP)) {
+ 		struct net_device *tun_dev = NULL;
+ 		ip_addr_t saddr, daddr;
+ 
+@@ -3626,14 +3671,14 @@
+ 	/*
+ 	 * ppp_xmit lock is held by linux kernel for l2tp packet in transmit
+ 	 * direction. we need to check for l2tp packet and avoid calls to
+-	 * ppp_is_multilink() and ppp_hold_channels() which acquire same lock
++	 * ecm_ppp_is_multilink() and ecm_ppp_hold_channels() which acquire same lock
+ 	 */
+ 
+-	if ((dev->priv_flags_ext & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(dev)) {
++	if ((ecm_netdev_priv_flags_ext(dev) & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(dev)) {
+ 		if (skb && (skb->skb_iif == dev->ifindex)) {
+ 			struct pppol2tp_common_addr info;
+ 
+-			if (__ppp_is_multilink(dev) > 0) {
++			if (ecm_ppp_is_multilink(dev) > 0) {
+ 				DEBUG_TRACE("%px: Net device: %px is MULTILINK PPP - Unknown to the ECM\n", feci, dev);
+ 				type_info.unknown.os_specific_ident = dev_interface_num;
+ 
+@@ -3643,7 +3688,7 @@
+ 				ii = ecm_interface_unknown_interface_establish(&type_info.unknown, dev_name, dev_interface_num, ae_interface_num, dev_mtu);
+ 				return ii;
+ 			}
+-			channel_count = __ppp_hold_channels(dev, ppp_chan, 1);
++			channel_count = ecm_ppp_hold_channels(dev, ppp_chan, 1);
+ 			if (channel_count != 1) {
+ 				DEBUG_TRACE("%px: Net device: %px PPP has %d channels - ECM cannot handle this (interface becomes Unknown type)\n",
+ 					    feci, dev, channel_count);
+@@ -3657,7 +3702,7 @@
+ 			}
+ 
+ 			if (pppol2tp_channel_addressing_get(ppp_chan[0], &info)) {
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				return NULL;
+ 			}
+ 
+@@ -3673,7 +3718,7 @@
+ 			/*
+ 			 * Release the channel.  Note that next_dev is still (correctly) held.
+ 			 */
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 			DEBUG_TRACE("%px: Net device: %px PPPo2L2TP session: %d,n", feci, dev, type_info.pppol2tpv2.l2tp.session.peer_session_id);
+ 
+@@ -3687,7 +3732,7 @@
+ #endif
+ 
+ #ifdef ECM_INTERFACE_PPTP_ENABLE
+-	if ((protocol == IPPROTO_GRE) && skb && v4_hdr && (dev->priv_flags_ext & IFF_EXT_PPP_PPTP)) {
++	if ((protocol == IPPROTO_GRE) && skb && v4_hdr && (ecm_netdev_priv_flags_ext(dev) & IFF_EXT_PPP_PPTP)) {
+ 		struct gre_base_hdr *gre_hdr;
+ 		uint16_t proto;
+ 		int ret;
+@@ -3698,7 +3743,7 @@
+ 		if ((gre_hdr->flags & GRE_VERSION) == ECM_GRE_VERSION_1) {
+ 			ecm_gre_hdr_pptp *hdr = (ecm_gre_hdr_pptp *)gre_hdr;
+ 
+-			ret = pptp_session_find(&opt, hdr->call_id, v4_hdr->daddr);
++			ret = ecm_pptp_session_find(&opt, hdr->call_id, v4_hdr->daddr);
+ 			if (ret < 0) {
+ 				skb_push(skb, sizeof(struct iphdr));
+ 				DEBUG_WARN("%px: PPTP session info not found\n", feci);
+@@ -3748,7 +3793,7 @@
+ 	 * PPP - but what is the channel type?
+ 	 * First: If this is multi-link then we do not support it
+ 	 */
+-	if (ppp_is_multilink(dev) > 0) {
++	if (ecm_ppp_is_multilink(dev) > 0) {
+ 		DEBUG_TRACE("%px: Net device: %px is MULTILINK PPP - Unknown to the ECM\n", feci, dev);
+ 		type_info.unknown.os_specific_ident = dev_interface_num;
+ 
+@@ -3765,7 +3810,7 @@
+ 	 * Get the PPP channel and then enquire what kind of channel it is
+ 	 * NOTE: Not multilink so only one channel to get.
+ 	 */
+-	channel_count = ppp_hold_channels(dev, ppp_chan, 1);
++	channel_count = ecm_ppp_hold_channels(dev, ppp_chan, 1);
+ 	if (channel_count != 1) {
+ 		DEBUG_TRACE("%px: Net device: %px PPP has %d channels - ECM cannot handle this (interface becomes Unknown type)\n",
+ 				feci, dev, channel_count);
+@@ -3782,14 +3827,14 @@
+ 	 * Get channel protocol type
+ 	 * NOTE: Not all PPP channels support channel specific methods.
+ 	 */
+-	channel_protocol = ppp_channel_get_protocol(ppp_chan[0]);
++	channel_protocol = ecm_ppp_channel_get_protocol(ppp_chan[0]);
+ 
+ #ifdef ECM_INTERFACE_L2TPV2_ENABLE
+ 	if (channel_protocol == PX_PROTO_OL2TP) {
+ 		struct pppol2tp_common_addr info;
+ 
+ 		if (pppol2tp_channel_addressing_get(ppp_chan[0], &info)) {
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ 			return NULL;
+ 		}
+ 
+@@ -3805,7 +3850,7 @@
+ 		/*
+ 		 * Release the channel.  Note that next_dev is still (correctly) held.
+ 		 */
+-		ppp_release_channels(ppp_chan, 1);
++		ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 		DEBUG_TRACE("%px: Net device: %px PPPo2L2TP session: %d,n", feci, dev, type_info.pppol2tpv2.l2tp.session.peer_session_id);
+ 
+@@ -3828,9 +3873,9 @@
+ 		/*
+ 		 * Get PPPoE session information and the underlying device it is using.
+ 		 */
+-		if (pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
++		if (ecm_pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
+ 			DEBUG_WARN("%px: failed to get PPPoE addressing info\n", feci);
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ 			return NULL;
+ 		}
+ 
+@@ -3841,7 +3886,7 @@
+ 		/*
+ 		 * Release the channel.  Note that next_dev is still (correctly) held.
+ 		 */
+-		ppp_release_channels(ppp_chan, 1);
++		ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 		DEBUG_TRACE("%px: Net device: %px PPPoE session: %x, remote mac: %pM\n",
+ 			    feci, dev, type_info.pppoe.pppoe_session_id, type_info.pppoe.remote_mac);
+@@ -3857,7 +3902,7 @@
+ #ifdef ECM_INTERFACE_PPTP_ENABLE
+ 	if (channel_protocol == PX_PROTO_PPTP) {
+ 
+-		pptp_channel_addressing_get(&opt, ppp_chan[0]);
++		ecm_pptp_channel_addressing_get(&opt, ppp_chan[0]);
+ 
+ 		/*
+ 		 * Get PPTP session info
+@@ -3868,7 +3913,7 @@
+ 		type_info.pptp.dst_ip = ntohl(opt.dst_addr.sin_addr.s_addr);
+ 
+ 		DEBUG_TRACE("%px: Net device: %px PPTP source call id: %d\n", feci, dev, type_info.pptp.src_call_id);
+-		ppp_release_channels(ppp_chan, 1);
++		ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 		interface_type = feci->ae_interface_type_get(feci, dev);
+ 		ae_interface_num = feci->ae_interface_number_by_dev_type_get(dev, interface_type);
+@@ -3893,7 +3938,7 @@
+ 	/*
+ 	 * Release the channel
+ 	 */
+-	ppp_release_channels(ppp_chan, 1);
++	ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 	/*
+ 	 * Establish this type of interface
+@@ -3979,7 +4024,7 @@
+ 				 * Ethernet - but what sub type?
+ 				 */
+ #ifdef ECM_INTERFACE_GRE_TAP_ENABLE
+-				if (dest_dev->priv_flags_ext & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
++				if (ecm_netdev_priv_flags_ext(dest_dev) & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
+ 					DEBUG_TRACE("%px: Acceleration not supported for GRE tap flows\n", dest_dev);
+ 					dev_put(dest_dev);
+ 					ecm_db_multicast_copy_if_heirarchy(to_list_single, interface);
+@@ -4177,7 +4222,7 @@
+ 			 * PPP - but what is the channel type?
+ 			 * First: If this is multi-link then we do not support it
+ 			 */
+-			if (ppp_is_multilink(dest_dev) > 0) {
++			if (ecm_ppp_is_multilink(dest_dev) > 0) {
+ 				DEBUG_TRACE("Net device: %px is MULTILINK PPP - Unknown to the ECM\n", dest_dev);
+ 				break;
+ 			}
+@@ -4188,7 +4233,7 @@
+ 			 * Get the PPP channel and then enquire what kind of channel it is
+ 			 * NOTE: Not multilink so only one channel to get.
+ 			 */
+-			channel_count = ppp_hold_channels(dest_dev, ppp_chan, 1);
++			channel_count = ecm_ppp_hold_channels(dest_dev, ppp_chan, 1);
+ 			if (channel_count != 1) {
+ 				DEBUG_TRACE("Net device: %px PPP has %d channels - Unknown to the ECM\n",
+ 						dest_dev, channel_count);
+@@ -4199,7 +4244,7 @@
+ 			 * Get channel protocol type
+ 			 * NOTE: Not all PPP channels support channel specific methods.
+ 			 */
+-			channel_protocol = ppp_channel_get_protocol(ppp_chan[0]);
++			channel_protocol = ecm_ppp_channel_get_protocol(ppp_chan[0]);
+ 			if (channel_protocol != PX_PROTO_OE) {
+ 				DEBUG_TRACE("Net device: %px PPP channel protocol: %d - Unknown to the ECM\n",
+ 						dest_dev, channel_protocol);
+@@ -4207,7 +4252,7 @@
+ 				/*
+ 				 * Release the channel
+ 				 */
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ 				break;
+ 			}
+@@ -4220,9 +4265,9 @@
+ 			/*
+ 			 * Get PPPoE session information and the underlying device it is using.
+ 			 */
+-			if (pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
++			if (ecm_pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
+ 				DEBUG_WARN("%px: failed to get PPPoE addressing info\n", dest_dev);
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				break;
+ 			}
+ 
+@@ -4234,7 +4279,7 @@
+ 			/*
+ 			 * Release the channel.  Note that next_dev is still (correctly) held.
+ 			 */
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ #endif
+ 		} while (false);
+ 
+@@ -4815,7 +4860,7 @@
+ 	}
+ 
+ #ifdef ECM_INTERFACE_OVPN_ENABLE
+-	if (dev->type == ARPHRD_NONE && dev->priv_flags_ext & IFF_EXT_TUN_TAP) {
++	if (dev->type == ARPHRD_NONE && ecm_netdev_priv_flags_ext(dev) & IFF_EXT_TUN_TAP) {
+ 		return true;
+ 	}
+ #endif
+@@ -4879,7 +4924,7 @@
+ 	uint8_t next_dest_node_addr[ETH_ALEN] = {0};
+ 	struct net_device *bridge;
+ 	struct net_device *top_dev = NULL;
+-	uint32_t serial = ecm_db_connection_serial_get(feci->ci);
++	uint32_t serial __maybe_unused = ecm_db_connection_serial_get(feci->ci);
+ 
+ 	/*
+ 	 * Get a big endian of the IPv4 address we have been given as our starting point.
+@@ -4951,7 +4996,7 @@
+ 	/*
+ 	 * if the address is a local address and indev=l2tp.
+ 	 */
+-	if ((given_src_dev->type == ARPHRD_PPP) && (given_src_dev->priv_flags_ext & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
++	if ((given_src_dev->type == ARPHRD_PPP) && (ecm_netdev_priv_flags_ext(given_src_dev) & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
+ 		if (!dst_xfrm(skb_dst(skb)) || (dest_dev->type != ECM_ARPHRD_IPSEC_TUNNEL_TYPE)) {
+ 			dev_put(dest_dev);
+ 			dest_dev = given_dest_dev;
+@@ -4967,7 +5012,7 @@
+ 	/*
+ 	 * if the address is a local address and indev=PPTP.
+ 	 */
+-	if (protocol == IPPROTO_GRE && given_dest_dev && (given_dest_dev->priv_flags_ext & IFF_EXT_PPP_PPTP)){
++	if (protocol == IPPROTO_GRE && given_dest_dev && (ecm_netdev_priv_flags_ext(given_dest_dev) & IFF_EXT_PPP_PPTP)){
+ 		dev_put(dest_dev);
+ 		dest_dev = given_dest_dev;
+ 		if (dest_dev) {
+@@ -5586,7 +5631,7 @@
+ 			/*
+ 			 * OVPN ?
+ 			 */
+-			if ((dest_dev_type == ARPHRD_NONE) && (dest_dev->priv_flags_ext & IFF_EXT_TUN_TAP)) {
++			if ((dest_dev_type == ARPHRD_NONE) && (ecm_netdev_priv_flags_ext(dest_dev) & IFF_EXT_TUN_TAP)) {
+ 				DEBUG_TRACE("Net device: %px is OVPN, device name: %s\n", dest_dev, dest_dev->name);
+ 				break;
+ 			}
+@@ -5605,7 +5650,7 @@
+ 			DEBUG_TRACE("%px: Net device: %px is PPP\n", feci, dest_dev);
+ 
+ #ifdef ECM_INTERFACE_L2TPV2_ENABLE
+-			if ((given_src_dev->priv_flags_ext & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
++			if ((ecm_netdev_priv_flags_ext(given_src_dev) & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
+ 				if (skb->skb_iif == dest_dev->ifindex) {
+ 					DEBUG_TRACE("%px: Net device: %px PPP channel is PPPoL2TPV2\n", feci, dest_dev);
+ 					break;
+@@ -5614,7 +5659,7 @@
+ #endif
+ 
+ #ifdef ECM_INTERFACE_PPTP_ENABLE
+-			if (protocol == IPPROTO_GRE && dest_dev && (dest_dev->priv_flags_ext & IFF_EXT_PPP_PPTP)) {
++			if (protocol == IPPROTO_GRE && dest_dev && (ecm_netdev_priv_flags_ext(dest_dev) & IFF_EXT_PPP_PPTP)) {
+ 				DEBUG_TRACE("%px: Net device: %px PPP channel is PPTP\n", feci, dest_dev);
+ 				break;
+ 			}
+@@ -5623,7 +5668,7 @@
+ 			 * PPP - but what is the channel type?
+ 			 * First: If this is multi-link then we do not support it
+ 			 */
+-			if (ppp_is_multilink(dest_dev) > 0) {
++			if (ecm_ppp_is_multilink(dest_dev) > 0) {
+ 				DEBUG_TRACE("%px: Net device: %px is MULTILINK PPP - Unknown to the ECM\n", feci, dest_dev);
+ 				break;
+ 			}
+@@ -5632,7 +5677,7 @@
+ 			 * Get the PPP channel and then enquire what kind of channel it is
+ 			 * NOTE: Not multilink so only one channel to get.
+ 			 */
+-			channel_count = ppp_hold_channels(dest_dev, ppp_chan, 1);
++			channel_count = ecm_ppp_hold_channels(dest_dev, ppp_chan, 1);
+ 			if (channel_count != 1) {
+ 				DEBUG_TRACE("%px: Net device: %px PPP has %d channels - Unknown to the ECM\n",
+ 						feci, dest_dev, channel_count);
+@@ -5643,7 +5688,7 @@
+ 			 * Get channel protocol type
+ 			 * NOTE: Not all PPP channels support channel specific methods.
+ 			 */
+-			channel_protocol = ppp_channel_get_protocol(ppp_chan[0]);
++			channel_protocol = ecm_ppp_channel_get_protocol(ppp_chan[0]);
+ 
+ #ifdef ECM_INTERFACE_L2TPV2_ENABLE
+ 			if (channel_protocol == PX_PROTO_OL2TP) {
+@@ -5651,7 +5696,7 @@
+ 				/*
+ 				 * PPPoL2TPV2 channel
+ 				 */
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				DEBUG_TRACE("%px: Net device: %px PPP channel is PPPoL2TPV2\n", feci, dest_dev);
+ 
+ 				/*
+@@ -5670,9 +5715,9 @@
+ 				/*
+ 				 * Get PPPoE session information and the underlying device it is using.
+ 				 */
+-				if (pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
++				if (ecm_pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
+ 					DEBUG_WARN("%px: failed to get PPPoE addressing info\n", feci);
+-					ppp_release_channels(ppp_chan, 1);
++					ecm_ppp_release_channels(ppp_chan, 1);
+ 					break;
+ 				}
+ 
+@@ -5687,7 +5732,7 @@
+ 				/*
+ 				 * Release the channel.  Note that next_dev is still (correctly) held.
+ 				 */
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				break;
+ 			}
+ #endif
+@@ -5698,7 +5743,7 @@
+ 			/*
+ 			 * Release the channel
+ 			 */
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ #endif
+ 		} while (false);
+@@ -5886,7 +5931,7 @@
+ 	/*
+ 	 * if the address is a local address and indev=l2tp.
+ 	 */
+-	if ((given_src_dev->type == ARPHRD_PPP) && (given_src_dev->priv_flags_ext & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
++	if ((given_src_dev->type == ARPHRD_PPP) && (ecm_netdev_priv_flags_ext(given_src_dev) & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
+ 		if (!dst_xfrm(skb_dst(skb)) || (dest_dev->type != ECM_ARPHRD_IPSEC_TUNNEL_TYPE)) {
+ 			dev_put(dest_dev);
+ 			dest_dev = given_dest_dev;
+@@ -6101,7 +6146,7 @@
+ 				 */
+ 
+ #ifdef ECM_INTERFACE_GRE_TAP_ENABLE
+-				if (dest_dev->priv_flags_ext & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
++				if (ecm_netdev_priv_flags_ext(dest_dev) & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP)) {
+ 					DEBUG_TRACE("%px: Acceleration not supported for GRE tap flows.\n", dest_dev);
+ 					dev_put(src_dev);
+ 					dev_put(dest_dev);
+@@ -6427,7 +6472,7 @@
+ 			DEBUG_TRACE("Net device: %px is PPP\n", dest_dev);
+ 
+ #ifdef ECM_INTERFACE_L2TPV2_ENABLE
+-			if ((given_src_dev->priv_flags_ext & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
++			if ((ecm_netdev_priv_flags_ext(given_src_dev) & IFF_EXT_PPP_L2TPV2) && ppp_is_xmit_locked(given_src_dev)) {
+ 				if (skb->skb_iif == dest_dev->ifindex) {
+ 					DEBUG_TRACE("Net device: %px PPP channel is PPPoL2TPV2\n", dest_dev);
+ 					break;
+@@ -6445,7 +6490,7 @@
+ 			 * PPP - but what is the channel type?
+ 			 * First: If this is multi-link then we do not support it
+ 			 */
+-			if (ppp_is_multilink(dest_dev) > 0) {
++			if (ecm_ppp_is_multilink(dest_dev) > 0) {
+ 				DEBUG_TRACE("Net device: %px is MULTILINK PPP - Unknown to the ECM\n", dest_dev);
+ 				break;
+ 			}
+@@ -6454,7 +6499,7 @@
+ 			 * Get the PPP channel and then enquire what kind of channel it is
+ 			 * NOTE: Not multilink so only one channel to get.
+ 			 */
+-			channel_count = ppp_hold_channels(dest_dev, ppp_chan, 1);
++			channel_count = ecm_ppp_hold_channels(dest_dev, ppp_chan, 1);
+ 			if (channel_count != 1) {
+ 				DEBUG_TRACE("Net device: %px PPP has %d channels - Unknown to the ECM\n",
+ 						dest_dev, channel_count);
+@@ -6465,7 +6510,7 @@
+ 			 * Get channel protocol type
+ 			 * NOTE: Not all PPP channels support channel specific methods.
+ 			 */
+-			channel_protocol = ppp_channel_get_protocol(ppp_chan[0]);
++			channel_protocol = ecm_ppp_channel_get_protocol(ppp_chan[0]);
+ 
+ #ifdef ECM_INTERFACE_L2TPV2_ENABLE
+ 			if (channel_protocol == PX_PROTO_OL2TP) {
+@@ -6473,7 +6518,7 @@
+ 				/*
+ 				 * PPPoL2TPV2 channel
+ 				 */
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				DEBUG_TRACE("Net device: %px PPP channel is PPPoL2TPV2\n", dest_dev);
+ 
+ 				/*
+@@ -6492,9 +6537,9 @@
+ 				/*
+ 				 * Get PPPoE session information and the underlying device it is using.
+ 				 */
+-				if (pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
++				if (ecm_pppoe_channel_addressing_get(ppp_chan[0], &addressing)) {
+ 					DEBUG_WARN("%px: failed to get PPPoE addressing info\n", dest_dev);
+-					ppp_release_channels(ppp_chan, 1);
++					ecm_ppp_release_channels(ppp_chan, 1);
+ 					break;
+ 				}
+ 
+@@ -6509,7 +6554,7 @@
+ 				/*
+ 				 * Release the channel.  Note that next_dev is still (correctly) held.
+ 				 */
+-				ppp_release_channels(ppp_chan, 1);
++				ecm_ppp_release_channels(ppp_chan, 1);
+ 				break;
+ 			}
+ #endif
+@@ -6520,7 +6565,7 @@
+ 			/*
+ 			 * Release the channel
+ 			 */
+-			ppp_release_channels(ppp_chan, 1);
++			ecm_ppp_release_channels(ppp_chan, 1);
+ 
+ #endif
+ 		} while (false);
+@@ -6656,7 +6701,7 @@
+ 					/*
+ 					 * Update the existing fdb entry's timestamp only.
+ 					 */
+-					br_fdb_entry_refresh(dev, mac_addr, 0);
++					br_fdb_refresh(dev, mac_addr, 0);
+ 				}
+ 
+ 				DEBUG_TRACE("Update bridge fdb entry for mac: %pM\n", mac_addr);
+@@ -6795,7 +6840,7 @@
+ 					continue;
+ 				}
+ 			}
+-			ppp_update_stats(dev, rx_packets, rx_bytes, tx_packets, tx_bytes, 0, 0, 0, 0);
++			ecm_ppp_update_stats(dev, rx_packets, rx_bytes, tx_packets, tx_bytes, 0, 0, 0, 0);
+ 			dev_put(dev);
+ 			continue;
+ #endif
+@@ -8037,7 +8082,7 @@
+  * ecm_interface_igs_enabled_handler()
+  *	IGS enabled check sysctl node handler.
+  */
+-static int ecm_interface_igs_enabled_handler(struct ctl_table *ctl, int write, void __user *buffer,
++static int ecm_interface_igs_enabled_handler(const struct ctl_table *ctl, int write, void __user *buffer,
+ 		 size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+@@ -8078,7 +8123,7 @@
+  * ecm_interface_src_check_handler()
+  *	Source interface check sysctl node handler.
+  */
+-static int ecm_interface_src_check_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int ecm_interface_src_check_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 	int current_value;

@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 14:20:00 +0900
+Subject: [PATCH] qca-nss-ecm: include non-ported IPv4/IPv6 headers
+
+Use the existing public declarations for the non-ported packet entry points
+so strict Linux 6.12 prototype checking does not reject the module.
+
+--- a/frontends/cmn/ecm_non_ported_ipv4.c
++++ b/frontends/cmn/ecm_non_ported_ipv4.c
+@@ -105,4 +105,5 @@
+ #endif
+ #include "ecm_front_end_common.h"
+ #include "ecm_ipv4.h"
++#include "ecm_non_ported_ipv4.h"
+ #include "ecm_ae_classifier_public.h"
+--- a/frontends/cmn/ecm_non_ported_ipv6.c
++++ b/frontends/cmn/ecm_non_ported_ipv6.c
+@@ -106,4 +106,5 @@
+ #endif
+ #include "ecm_front_end_common.h"
+ #include "ecm_ipv6.h"
++#include "ecm_non_ported_ipv6.h"
+ #include "ecm_ae_classifier_public.h"
+-- 
+2.43.0

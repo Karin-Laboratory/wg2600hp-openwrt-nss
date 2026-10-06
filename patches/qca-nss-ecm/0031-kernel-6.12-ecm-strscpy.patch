@@ -1,0 +1,5 @@
+--- a/ecm_db/ecm_db_connection.c
++++ b/ecm_db/ecm_db_connection.c
+@@ -698,1 +698,1 @@
+-	strlcpy(name_buffer, ci->node[dir]->iface->name, IFNAMSIZ);
++	strscpy(name_buffer, ci->node[dir]->iface->name, IFNAMSIZ);

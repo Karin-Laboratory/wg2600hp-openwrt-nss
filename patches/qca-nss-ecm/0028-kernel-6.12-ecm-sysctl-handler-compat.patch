@@ -1,0 +1,12 @@
+--- a/frontends/ecm_front_end_common.c
++++ b/frontends/ecm_front_end_common.c
+@@ -767,1 +767,1 @@
+-int ecm_front_end_ppe_fse_enable_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int ecm_front_end_ppe_fse_enable_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+@@ -802,1 +802,1 @@
+-int ecm_front_end_db_conn_limit_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int ecm_front_end_db_conn_limit_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+@@ -853,3 +853,0 @@
+-	},
+-	{ }
+-};

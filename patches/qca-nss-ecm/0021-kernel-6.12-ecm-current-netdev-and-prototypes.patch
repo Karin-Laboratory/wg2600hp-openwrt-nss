@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 08:05:00 +0900
+Subject: [PATCH] qca-nss-ecm: use netdev compatibility accessor in NSS common code
+
+Use the Linux 6.12 compatibility accessor for the first users reached by
+the standard ECM build, and include the existing IPv4 public declaration
+header in its implementation unit.
+
+--- a/frontends/nss/ecm_nss_common.h
++++ b/frontends/nss/ecm_nss_common.h
+@@ -163,6 +163,6 @@
+ 		/*
+ 		 * If device is not GRETAP then return NONE.
+ 		 */
+-		if (!(dev->priv_flags_ext & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP))) {
++		if (!(ecm_netdev_priv_flags_ext(dev) & (IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP))) {
+ 			break;
+ 		}
+@@ -196,6 +196,6 @@
+ 		break;
+ 	case ARPHRD_PPP:
+ #ifdef ECM_INTERFACE_PPTP_ENABLE
+-		if (dev->priv_flags_ext & IFF_EXT_PPP_PPTP) {
++		if (ecm_netdev_priv_flags_ext(dev) & IFF_EXT_PPP_PPTP) {
+ 			if (feci->protocol == IPPROTO_GRE) {
+ 				return NSS_DYNAMIC_INTERFACE_TYPE_PPTP_OUTER;
+ 			}
+--- a/frontends/cmn/ecm_ported_ipv4.c
++++ b/frontends/cmn/ecm_ported_ipv4.c
+@@ -114,0 +115 @@
++#include "ecm_ported_ipv4.h"

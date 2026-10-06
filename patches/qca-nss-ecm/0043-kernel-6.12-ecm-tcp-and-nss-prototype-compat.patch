@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 14:30:00 +0900
+Subject: [PATCH] qca-nss-ecm: adapt TCP policy and declare NSS callback
+
+Linux 6.12 removed the downstream tcp_no_window_check member. Retain the
+upstream liberal-policy and per-connection liberal flag checks, which are the
+current equivalents used to request the NSS no-sequence-check behavior.
+
+--- a/frontends/nss/ecm_nss_ported_ipv4.c
++++ b/frontends/nss/ecm_nss_ported_ipv4.c
+@@ -1217,5 +1217,5 @@
+ #ifdef ECM_OPENWRT_SUPPORT
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
+-			if (tn->tcp_be_liberal || tn->tcp_no_window_check
++			if (tn->tcp_be_liberal
+ #else
+ 			if (tn->tcp_be_liberal || nf_ct_tcp_no_window_check
+--- a/frontends/nss/ecm_nss_ported_ipv4.h
++++ b/frontends/nss/ecm_nss_ported_ipv4.h
+@@ -25,2 +25,4 @@
+ 								int protocol,
+ 								struct ecm_db_connection_instance **nci);
++
++extern bool ecm_nss_ported_ipv4_connection_defunct_callback(void *arg, int *accel_mode);
+-- 
+2.43.0

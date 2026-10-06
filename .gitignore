@@ -1,0 +1,10 @@
+build_dir/
+staging_dir/
+tmp/
+dl/
+bin/
+*.bin
+*.apk
+*.ko
+*.img
+*.uImage

@@ -1,0 +1,142 @@
+--- a/ipq806x/include/nss_gmac_dev.h
++++ b/ipq806x/include/nss_gmac_dev.h
+@@ -1515,10 +1515,25 @@
+ 			uint32_t mmd_dev_addr, uint32_t reg);
+ int32_t nss_gmac_ath_phy_disable_smart_802az(struct phy_device *phydev);
+ int32_t nss_gmac_ath_phy_disable_802az(struct phy_device *phydev);
++void nss_gmac_disable_crs(struct nss_gmac_dev *gmacdev);
++void nss_gmac_enable_crs(struct nss_gmac_dev *gmacdev);
++void nss_gmac_qsgmii_dev_init(struct nss_gmac_dev *gmacdev);
++void nss_macsec_pre_init(void);
++void nss_macsec_bypass_en_set(uint32_t gmac_id, bool enable);
++void nss_macsec_pre_exit(void);
++void nss_gmac_link_state_change_notify_register(struct notifier_block *nb);
++void nss_gmac_link_state_change_notify_unregister(struct notifier_block *nb);
++void nss_gmac_config_flow_control(struct nss_gmac_dev *gmacdev);
++void nss_gmac_mmc_stats_cor_enable(struct nss_gmac_dev *gmacdev);
+ void nss_gmac_set_mac_addr(struct nss_gmac_dev *gmacdev,
+-			uint32_t mac_high, uint32_t mac_low, uint8_t *mac_addr);
++			uint32_t mac_high, uint32_t mac_low, const uint8_t *mac_addr);
+ void nss_gmac_get_mac_addr(struct nss_gmac_dev *gmacdev,
+ 			uint32_t mac_high, uint32_t mac_low, uint8_t *mac_addr);
++void nss_gmac_get_stats64(struct net_device *netdev,
++			struct rtnl_link_stats64 *stats);
++void nss_gmac_exit_network_interfaces(void);
++int nss_gmac_host_interface_init(void);
++void nss_gmac_host_interface_exit(void);
+ int32_t nss_gmac_attach(struct nss_gmac_dev *gmacdev, uint32_t reg_base,
+ 			uint32_t reglen);
+ void nss_gmac_detach(struct nss_gmac_dev *gmacdev);
+@@ -2146,10 +2161,10 @@
+ void nss_gmac_disable_mmc_ipc_rx_interrupt(struct nss_gmac_dev *gmacdev,
+ 					   uint32_t mask);
+ /* Sysctl handler APIs */
+-int nss_gmac_per_prec_stats_enable_handler(struct ctl_table *table, int write,
++int nss_gmac_per_prec_stats_enable_handler(const struct ctl_table *table, int write,
+ 					   void __user *buffer, size_t *lenp,
+ 					   loff_t *ppos);
+-int nss_gmac_per_prec_stats_reset_handler(struct ctl_table *table, int write,
++int nss_gmac_per_prec_stats_reset_handler(const struct ctl_table *table, int write,
+ 					   void __user *buffer, size_t *lenp,
+ 					   loff_t *ppos);
+ 
+--- a/ipq806x/nss_gmac_ctrl.c
++++ b/ipq806x/nss_gmac_ctrl.c
+@@ -382,7 +382,7 @@
+ 	nss_gmac_set_mac_addr(gmacdev, gmac_addr0_high, gmac_addr0_low,
+ 			      addr->sa_data);
+ 	nss_gmac_get_mac_addr(gmacdev, gmac_addr0_high, gmac_addr0_low,
+-			      netdev->dev_addr);
++			      (u8 *)netdev->dev_addr);
+ 
+ 	return 0;
+ }
+@@ -1352,9 +1352,9 @@
+ 	 * This just fill in some default MAC address
+ 	 */
+ 	if (is_valid_ether_addr(gmaccfg->mac_addr)) {
+-		memcpy(netdev->dev_addr, &gmaccfg->mac_addr, ETH_ALEN);
++		memcpy((u8 *)netdev->dev_addr, &gmaccfg->mac_addr, ETH_ALEN);
+ 	} else {
+-		random_ether_addr(netdev->dev_addr);
++		eth_random_addr((u8 *)netdev->dev_addr);
+ 		pr_info("GMAC%d(%p) Invalid MAC@ - using %02x:%02x:%02x:%02x:%02x:%02x\n",
+ 			gmacdev->macid, gmacdev,
+ 			*netdev->dev_addr, *netdev->dev_addr+1,
+@@ -1553,13 +1553,12 @@
+  * @param[in] pointer to struct platform_device
+  * @return Returns 0 on success and Error code on failure.
+  */
+-static int nss_gmac_remove(struct platform_device *pdev)
++static void nss_gmac_remove(struct platform_device *pdev)
+ {
+ 	/*
+ 	 * All remove has been done in nss_gmac_exit_network_interfaces
+ 	 * Just return success here
+ 	 */
+-	return 0;
+ }
+ 
+ static struct of_device_id nss_gmac_dt_ids[] = {
+--- a/ipq806x/nss_gmac_dev.c
++++ b/ipq806x/nss_gmac_dev.c
+@@ -1522,7 +1522,7 @@
+  * @return void
+  */
+ void nss_gmac_set_mac_addr(struct nss_gmac_dev *gmacdev, uint32_t mac_high,
+-			      uint32_t mac_low, uint8_t *mac_addr)
++		uint32_t mac_low, const uint8_t *mac_addr)
+ {
+ 	uint32_t data;
+ 
+--- a/ipq806x/nss_gmac_ethtool.c
++++ b/ipq806x/nss_gmac_ethtool.c
+@@ -257,9 +257,9 @@
+ static void nss_gmac_get_drvinfo(struct net_device *dev,
+ 						struct ethtool_drvinfo *info)
+ {
+-	strlcpy(info->driver, nss_gmac_driver_string, sizeof(info->driver));
+-	strlcpy(info->version, nss_gmac_driver_version, sizeof(info->version));
+-	strlcpy(info->bus_info, "NSS", ETHTOOL_BUSINFO_LEN);
++	strscpy(info->driver, nss_gmac_driver_string, sizeof(info->driver));
++	strscpy(info->version, nss_gmac_driver_version, sizeof(info->version));
++	strscpy(info->bus_info, "NSS", ETHTOOL_BUSINFO_LEN);
+ 	info->n_priv_flags = __NSS_GMAC_PRIV_FLAG_MAX;
+ }
+ 
+--- a/ipq806x/nss_gmac_sysctl.c
++++ b/ipq806x/nss_gmac_sysctl.c
+@@ -26,7 +26,7 @@
+ /* nss_gmac_per_prec_stats_enable_handler()
+  *	Enable/Disable per-precedence statistics
+  */
+-int nss_gmac_per_prec_stats_enable_handler(struct ctl_table *table, int write,
++int nss_gmac_per_prec_stats_enable_handler(const struct ctl_table *table, int write,
+ 					   void __user *buffer, size_t *lenp,
+ 					   loff_t *ppos)
+ {
+@@ -58,7 +58,7 @@
+ /* nss_gmac_per_prec_stats_reset_handler()
+  *	Reset per-precedence statistics
+  */
+-int nss_gmac_per_prec_stats_reset_handler(struct ctl_table *table, int write,
++int nss_gmac_per_prec_stats_reset_handler(const struct ctl_table *table, int write,
+ 				   void __user *buffer, size_t *lenp,
+ 				   loff_t *ppos)
+ {
+@@ -96,4 +96,3 @@
+ 
+ 	return ret;
+ }
+-
+--- a/ipq806x/nss_gmac_tx_rx_offload.c
++++ b/ipq806x/nss_gmac_tx_rx_offload.c
+@@ -945,7 +945,7 @@
+ 		netdev_info(netdev, "%s: offload is not enabled, bring up gmac with slowpath\n",
+ 								__func__);
+ 
+-		netif_napi_add(netdev, &gmacdev->napi, nss_gmac_poll,
++		netif_napi_add_weight(netdev, &gmacdev->napi, nss_gmac_poll,
+ 							NSS_GMAC_NAPI_BUDGET);
+ 		/* Initial the RX/TX ring */
+ 		dma_set_coherent_mask(dev, 0xffffffff);

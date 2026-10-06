@@ -1,0 +1,15 @@
+--- a/ecm_db/ecm_db_node.h
++++ b/ecm_db/ecm_db_node.h
+@@ -90,1 +90,12 @@
+ int ecm_db_node_deref(struct ecm_db_node_instance *ni);
++#ifdef ECM_DB_ADVANCED_STATS_ENABLE
++void ecm_db_node_data_stats_get(struct ecm_db_node_instance *ni,
++                                uint64_t *from_data_total,
++                                uint64_t *to_data_total,
++                                uint64_t *from_packet_total,
++                                uint64_t *to_packet_total,
++                                uint64_t *from_data_total_dropped,
++                                uint64_t *to_data_total_dropped,
++                                uint64_t *from_packet_total_dropped,
++                                uint64_t *to_packet_total_dropped);
++#endif

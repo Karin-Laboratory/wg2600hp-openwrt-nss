@@ -1,0 +1,43 @@
+--- a/ecm_db/ecm_db.h
++++ b/ecm_db/ecm_db.h
+@@ -1,0 +1,4 @@
++struct dentry;
++int ecm_db_init(struct dentry *dentry);
++void ecm_db_exit(void);
++
+--- a/ecm_db/ecm_db.c
++++ b/ecm_db/ecm_db.c
+@@ -28,1 +28,2 @@
+ #include <net/route.h>
++#include <net/fib_notifier.h>
+@@ -207,1 +207,1 @@
+-static int ecm_db_ipv4_route_table_update_event(struct notifier_block *nb,
++static int __maybe_unused ecm_db_ipv4_route_table_update_event(struct notifier_block *nb,
+@@ -241,1 +241,1 @@
+-static int ecm_db_ipv6_route_table_update_event(struct notifier_block *nb,
++static int __maybe_unused ecm_db_ipv6_route_table_update_event(struct notifier_block *nb,
+@@ -417,3 +417,11 @@
++static int ecm_db_ipv6_fib_route_update_event(struct notifier_block *nb,
++					      unsigned long event, void *ptr)
++{
++	ecm_front_end_ipv6_stop(1);
++	ecm_db_connection_defunct_ip_version(6);
++	ecm_front_end_ipv6_stop(0);
++	return NOTIFY_DONE;
++}
+ static struct notifier_block ecm_db_ip6route_table_update_nb = {
+-	.notifier_call = ecm_db_ipv6_route_table_update_event,
++	.notifier_call = ecm_db_ipv6_fib_route_update_event,
+ };
+@@ -494,3 +506,3 @@
+-	ip_rt_register_notifier(&ecm_db_iproute_table_update_nb);
++	register_fib_notifier(&init_net, &ecm_db_iproute_table_update_nb, NULL, NULL);
+ #ifdef ECM_IPV6_ENABLE
+-	rt6_register_notifier(&ecm_db_ip6route_table_update_nb);
++	register_fib_notifier(&init_net, &ecm_db_ip6route_table_update_nb, NULL, NULL);
+@@ -528,3 +540,3 @@
+-	ip_rt_unregister_notifier(&ecm_db_iproute_table_update_nb);
++	unregister_fib_notifier(&init_net, &ecm_db_iproute_table_update_nb);
+ #ifdef ECM_IPV6_ENABLE
+-	rt6_unregister_notifier(&ecm_db_ip6route_table_update_nb);
++	unregister_fib_notifier(&init_net, &ecm_db_ip6route_table_update_nb);

@@ -1,0 +1,62 @@
+--- a/exports/nss_pptp.h
++++ b/exports/nss_pptp.h
+@@ -26,5 +26,9 @@
+ #include "nss_dynamic_interface.h"
+ 
++struct napi_struct;
++struct sk_buff;
++struct net_device;
++
+ /**
+  * @addtogroup nss_pptp_subsystem
+  * @{
+--- a/nss_ipv6.c
++++ b/nss_ipv6.c
+@@ -715,26 +715,0 @@
+-static struct ctl_table nss_ipv6_dir[] = {
+-	{
+-		.procname		= "ipv6cfg",
+-		.mode			= 0555,
+-		.child			= nss_ipv6_table,
+-	},
+-	{ }
+-};
+-
+-static struct ctl_table nss_ipv6_root_dir[] = {
+-	{
+-		.procname		= "nss",
+-		.mode			= 0555,
+-		.child			= nss_ipv6_dir,
+-	},
+-	{ }
+-};
+-
+-static struct ctl_table nss_ipv6_root[] = {
+-	{
+-		.procname		= "dev",
+-		.mode			= 0555,
+-		.child			= nss_ipv6_root_dir,
+-	},
+-	{ }
+-};
+@@ -750,1 +717,1 @@
+-	nss_ipv6_header = register_sysctl_table(nss_ipv6_root);
++	nss_ipv6_header = register_sysctl("dev/nss/ipv6cfg", nss_ipv6_table);
+@@ -791,3 +758,4 @@
+ 	if (nss_ipv6_header) {
+-		unregister_sysctl_table(nss_ipv6_header);
++		unregister_sysctl_table(nss_ipv6_header);
++		nss_ipv6_header = NULL;
+ 	}
+--- a/nss_pptp_strings.c
++++ b/nss_pptp_strings.c
+@@ -22,1 +22,2 @@
+ #include "nss_strings.h"
++#include "nss_pptp_strings.h"
+--- a/nss_tun6rd_log.c
++++ b/nss_tun6rd_log.c
+@@ -20,1 +20,4 @@
+ #include "nss_core.h"
++#include "nss_tx_rx_common.h"
++#include <nss_tun6rd.h>
++#include "nss_tun6rd_log.h"

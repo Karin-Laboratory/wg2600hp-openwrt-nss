@@ -1,0 +1,5 @@
+--- a/ipq806x/nss_gmac_mdiobus.c
++++ b/ipq806x/nss_gmac_mdiobus.c
+@@ -101,1 +101,1 @@
+-int32_t nss_gmac_mdiobus_reset(struct mii_bus *bus)
++static int32_t nss_gmac_mdiobus_reset(struct mii_bus *bus)

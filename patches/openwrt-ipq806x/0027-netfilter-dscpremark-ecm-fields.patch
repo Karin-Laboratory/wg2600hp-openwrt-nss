@@ -1,0 +1,21 @@
+--- a/include/net/netfilter/nf_conntrack_dscpremark_ext.h
++++ b/include/net/netfilter/nf_conntrack_dscpremark_ext.h
+@@ -7,12 +7,18 @@
+ #define NF_CT_DSCPREMARK_EXT_DSCP_RULE_VALID 0x1
+ #define NF_CT_DSCPREMARK_EXT_RULE_VALID 0x1
+ #define NF_CT_DSCPREMARK_EXT_RULE_NOT_VALID 0x0
++#define NF_CT_DSCPREMARK_EXT_PRIO 0x1
++#define NF_CT_DSCPREMARK_EXT_DSCP 0x2
+ 
+ struct nf_ct_dscpremark_ext {
+ 	__u32 flow_priority;
+ 	__u32 reply_priority;
++	__u32 flow_mark;
++	__u32 reply_mark;
+ 	__u8 flow_dscp;
+ 	__u8 reply_dscp;
+-	__u16 rule_flags;
++	__u16 flow_set_flags;
++	__u16 return_set_flags;
++	__u16 rule_flags;
+ };

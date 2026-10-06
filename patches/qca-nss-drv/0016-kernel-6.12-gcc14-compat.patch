@@ -1,0 +1,1371 @@
+--- a/Makefile
++++ b/Makefile
+@@ -85,10 +85,8 @@
+ 			nss_wifili.o \
+ 			nss_wifili_log.o \
+ 			nss_wifili_stats.o \
+-			nss_wifili_strings.o
+-ifeq ($(shell test $(TARGET_NSS_MINOR_VERSION) -gt 0; echo $$?),0)
+-qca-nss-drv-objs += nss_wifi_mac_db.o
+-endif
++			nss_wifili_strings.o \
++			nss_wifi_mac_db.o
+ endif
+ 
+ ifneq "$(NSS_DRV_BRIDGE_ENABLE)" "n"
+--- a/exports/nss_api_if.h
++++ b/exports/nss_api_if.h
+@@ -119,11 +119,7 @@
+ #define NSS_MAX_PHYSICAL_INTERFACES 8	/**< Maximum number of physical interfaces. */
+ #define NSS_MAX_VIRTUAL_INTERFACES 16	/**< Maximum number of virtual interfaces. */
+ #define NSS_MAX_TUNNEL_INTERFACES 4	/**< Maximum number of tunnel interfaces. */
+-#if (NSS_FW_VERSION_CODE < NSS_FW_VERSION(11,1))
+-#define NSS_MAX_SPECIAL_INTERFACES 55	/**< Maximum number of special interfaces. */
+-#else
+ #define NSS_MAX_SPECIAL_INTERFACES 67	/**< Maximum number of special interfaces. */
+-#endif
+ #define NSS_MAX_WIFI_RADIO_INTERFACES 3	/**< Maximum number of radio interfaces. */
+ 
+ /*
+@@ -257,10 +253,6 @@
+ 		/**< Special interface number for timestamp receive. */
+ #define NSS_GRE_REDIR_MARK_INTERFACE (NSS_SPECIAL_IF_START + 56)
+ 		/**< Special interface number for GRE redirect mark. */
+-#if (NSS_FW_VERSION_CODE < NSS_FW_VERSION(11,1))
+-#define NSS_RMNET_RX_INTERFACE (NSS_SPECIAL_IF_START + 57)
+-		/**< Special interface number for RMNET receive handler. */
+-#else
+ #define NSS_VXLAN_INTERFACE (NSS_SPECIAL_IF_START + 57)
+ 		/**< Special interface number for VxLAN handler. */
+ #define NSS_RMNET_RX_INTERFACE (NSS_SPECIAL_IF_START + 58)
+@@ -277,7 +269,7 @@
+ 		/**< Special interface number for the Wi-Fi MAC database. */
+ #define NSS_DMA_INTERFACE (NSS_SPECIAL_IF_START + 66)
+ 		/**< Special interface number for the DMA interface. */
+-#endif
++
+ 
+ #ifdef __KERNEL__ /* only kernel will use. */
+ 
+--- a/exports/nss_dynamic_interface.h
++++ b/exports/nss_dynamic_interface.h
+@@ -59,11 +59,7 @@
+ 	NSS_DYNAMIC_INTERFACE_TYPE_BRIDGE,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_VLAN,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_RESERVED_3,
+-#if (NSS_FW_VERSION_CODE <= NSS_FW_VERSION(11,0))
+-	NSS_DYNAMIC_INTERFACE_TYPE_WIFILI,
+-#else
+ 	NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_INTERNAL,
+-#endif
+ 	NSS_DYNAMIC_INTERFACE_TYPE_MAP_T_INNER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_MAP_T_OUTER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_GRE_TUNNEL_INNER,
+@@ -100,16 +96,14 @@
+ 	NSS_DYNAMIC_INTERFACE_TYPE_IGS,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_CLMAP_US,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_CLMAP_DS,
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_DYNAMIC_INTERFACE_TYPE_VXLAN_INNER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_VXLAN_OUTER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_MATCH,
+-#endif
+ 	NSS_DYNAMIC_INTERFACE_TYPE_RMNET_RX_N2H,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_RMNET_RX_H2N,
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL0,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL1,
++#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,1))
+ 	NSS_DYNAMIC_INTERFACE_TYPE_TLS_INNER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_TLS_OUTER,
+ 	NSS_DYNAMIC_INTERFACE_TYPE_MIRROR,
+--- a/exports/nss_if.h
++++ b/exports/nss_if.h
+@@ -290,6 +290,7 @@
+ 					nss_if_rx_callback_t rx_callback,
+ 					nss_if_msg_callback_t msg_callback,
+ 					struct net_device *if_ctx);
++extern void nss_if_unregister(uint32_t if_num);
+ 
+ /**
+  * nss_if_tx_buf
+--- a/exports/nss_ipv6.h
++++ b/exports/nss_ipv6.h
+@@ -276,14 +276,10 @@
+ 	NSS_IPV6_EXCEPTION_EVENT_TUNIPIP6_NEEDS_FRAGMENTATION,
+ 	NSS_IPV6_EXCEPTION_EVENT_PPPOE_BRIDGE_NO_ICME,
+ 	NSS_IPV6_EXCEPTION_EVENT_DONT_FRAG_SET,
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_IPV6_EXCEPTION_EVENT_REASSEMBLY_NOT_SUPPORTED,
+-#endif
+ 	NSS_IPV6_EXCEPTION_EVENT_PPPOE_NO_SESSION,
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_IPV6_EXCEPTION_EVENT_ICMP_IPV6_GRE_HEADER_INCOMPLETE,
+ 	NSS_IPV6_EXCEPTION_EVENT_ICMP_IPV6_ESP_HEADER_INCOMPLETE,
+-#endif
+ 	NSS_IPV6_EXCEPTION_EVENT_MAX
+ };
+ 
+@@ -473,24 +469,20 @@
+ 		/**< Invalid interface for updating multicast. */
+ 	NSS_IPV6_CR_ACCEL_MODE_CONFIG_INVALID,
+ 		/**< Invalid config value for acceleration mode. */
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_IPV6_CR_INVALID_MSG_ERROR,
+ 		/**< Invalid message size error. */
+ 	NSS_IPV6_CR_DSCP2PRI_PRI_INVALID,
+ 		/**< Priority value out of range error. */
+ 	NSS_IPV6_CR_DSCP2PRI_CONFIG_INVALID,
+ 		/**< Invalid DSCP value. */
+-#endif
+ 	NSS_IPV6_CR_INVALID_RPS,
+ 		/**< Invalid RPS Value. */
+ 	NSS_IPV6_HASH_BITMAP_INVALID,
+ 		/**< Invalid hash bitmap. */
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	NSS_IPV6_DR_HW_DECEL_FAIL_ERROR,
+ 		/**< Hardware deceleration fail error. */
+ 	NSS_IPV6_CR_RETURN_EXIST_ERROR,
+ 		/**< Rule creation failed because a 5-tuple return already exists. */
+-#endif
+ 	NSS_IPV6_LAST
+ 		/**< Maximum number of error responses. */
+ };
+--- a/exports/nss_n2h.h
++++ b/exports/nss_n2h.h
+@@ -73,43 +73,40 @@
+  */
+ enum nss_n2h_stats_types {
+ 	NSS_N2H_STATS_QUEUE_DROPPED = NSS_STATS_NODE_MAX,
+-					/* Number of packets dropped because the exception queue is too full */
+-	NSS_N2H_STATS_TOTAL_TICKS,	/* Total clock ticks spend inside the N2H */
+-	NSS_N2H_STATS_WORST_CASE_TICKS,	/* Worst case iteration of the exception path in ticks */
+-	NSS_N2H_STATS_ITERATIONS,	/* Number of iterations around the N2H */
+-
++		/**< Number of packets dropped because the exception queue is too full. */
++	NSS_N2H_STATS_TOTAL_TICKS,	/**< Total clock ticks spend inside the N2H. */
++	NSS_N2H_STATS_WORST_CASE_TICKS,	/**< Worst case iteration of the exception path in ticks. */
++	NSS_N2H_STATS_ITERATIONS,	/**< Number of iterations around the N2H. */
++	NSS_N2H_STATS_PBUF_OCM_TOTAL_COUNT,	/**< Number of pbuf OCM total count. */
++	NSS_N2H_STATS_PBUF_OCM_FREE_COUNT,	/**< Number of pbuf OCM free count. */
+ 	NSS_N2H_STATS_PBUF_OCM_ALLOC_FAILS_WITH_PAYLOAD,
+-						/* Number of pbuf ocm allocations that have failed with payload */
+-	NSS_N2H_STATS_PBUF_OCM_FREE_COUNT,	/* Number of pbuf ocm free count */
+-	NSS_N2H_STATS_PBUF_OCM_TOTAL_COUNT,	/* Number of pbuf ocm total count */
++					/**< Number of pbuf OCM allocations that have failed with payload. */
+ 	NSS_N2H_STATS_PBUF_OCM_ALLOC_FAILS_NO_PAYLOAD,
+-						/* Number of pbuf ocm allocations that have failed without payload */
+-
++					/**< Number of pbuf OCM allocations that have failed without payload. */
++	NSS_N2H_STATS_PBUF_DEFAULT_TOTAL_COUNT,	/**< Number of pbuf default total count. */
++	NSS_N2H_STATS_PBUF_DEFAULT_FREE_COUNT,	/**< Number of pbuf default free count. */
+ 	NSS_N2H_STATS_PBUF_DEFAULT_ALLOC_FAILS_WITH_PAYLOAD,
+-						/* Number of pbuf default allocations that have failed with payload */
+-
+-	NSS_N2H_STATS_PBUF_DEFAULT_FREE_COUNT,	/* Number of pbuf default free count */
+-	NSS_N2H_STATS_PBUF_DEFAULT_TOTAL_COUNT,	/* Number of pbuf default total count */
++					/**< Number of pbuf default allocations that have failed with payload. */
+ 	NSS_N2H_STATS_PBUF_DEFAULT_ALLOC_FAILS_NO_PAYLOAD,
+-						/* Number of pbuf default allocations that have failed without payload */
++	/**< Number of pbuf default allocations that have failed without payload. */
+ 
+-	NSS_N2H_STATS_PAYLOAD_ALLOC_FAILS,	/* Number of pbuf allocations that have failed because there were no free payloads */
+-	NSS_N2H_STATS_PAYLOAD_FREE_COUNT,	/* Number of free payloads that exist */
++	NSS_N2H_STATS_PAYLOAD_ALLOC_FAILS,	/**< Number of pbuf allocations that have failed because there were no free payloads. */
++	NSS_N2H_STATS_PAYLOAD_FREE_COUNT,	/**< Number of free payloads that exist. */
+ 
+-	NSS_N2H_STATS_H2N_CONTROL_PACKETS,	/* Control packets received from HLOS */
+-	NSS_N2H_STATS_H2N_CONTROL_BYTES,	/* Control bytes received from HLOS */
+-	NSS_N2H_STATS_N2H_CONTROL_PACKETS,	/* Control packets sent to HLOS */
+-	NSS_N2H_STATS_N2H_CONTROL_BYTES,	/* Control bytes sent to HLOS */
+-
+-	NSS_N2H_STATS_H2N_DATA_PACKETS,		/* Data packets received from HLOS */
+-	NSS_N2H_STATS_H2N_DATA_BYTES,		/* Data bytes received from HLOS */
+-	NSS_N2H_STATS_N2H_DATA_PACKETS,		/* Data packets sent to HLOS */
+-	NSS_N2H_STATS_N2H_DATA_BYTES,		/* Data bytes sent to HLOS */
+-	NSS_N2H_STATS_N2H_TOT_PAYLOADS,		/* No. of payloads in NSS */
+-	NSS_N2H_STATS_N2H_INTERFACE_INVALID,	/* No. of bad interface access */
+-	NSS_N2H_STATS_ENQUEUE_RETRIES,		/* No. of enqueue retries by N2H */
++	NSS_N2H_STATS_H2N_CONTROL_PACKETS,	/**< Control packets received from HLOS. */
++	NSS_N2H_STATS_H2N_CONTROL_BYTES,	/**< Control bytes received from HLOS. */
++	NSS_N2H_STATS_N2H_CONTROL_PACKETS,	/**< Control packets sent to HLOS. */
++	NSS_N2H_STATS_N2H_CONTROL_BYTES,	/**< Control bytes sent to HLOS. */
++
++	NSS_N2H_STATS_H2N_DATA_PACKETS,		/**< Data packets received from HLOS. */
++	NSS_N2H_STATS_H2N_DATA_BYTES,		/**< Data bytes received from HLOS. */
++	NSS_N2H_STATS_N2H_DATA_PACKETS,		/**< Data packets sent to HLOS. */
++	NSS_N2H_STATS_N2H_DATA_BYTES,		/**< Data bytes sent to HLOS. */
++	NSS_N2H_STATS_N2H_TOT_PAYLOADS,		/**< Number of payloads in NSS. */
++	NSS_N2H_STATS_N2H_INTERFACE_INVALID,	/**< Number of bad interface access. */
++	NSS_N2H_STATS_ENQUEUE_RETRIES,		/**< Number of enqueue retries by N2H. */
+ 
+-	NSS_N2H_STATS_MAX,
++	NSS_N2H_STATS_MAX,			/**< Maximum message type. */
+ };
+ 
+ /**
+@@ -422,6 +419,7 @@
+  * @param[in] msg       Pointer to the N2H message.
+  */
+ typedef void (*nss_n2h_msg_callback_t)(void *app_data, struct nss_n2h_msg *msg);
++extern struct nss_ctx_instance *nss_n2h_notify_register(int core, nss_n2h_msg_callback_t cb, void *app_data);
+ 
+ /**
+  * nss_n2h_tx_msg
+--- a/nss_core.c
++++ b/nss_core.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include <linux/skbuff_ref.h>
+ #include <linux/module.h>
+ #include <linux/mm.h>
+ #include <linux/of.h>
+@@ -54,7 +55,8 @@
+ (((LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)))) || \
+ (((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 0)))) || \
+ (((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(5, 11, 0)))) || \
+-(((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0))))))
++(((LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)))) || \
++(((LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0))))))
+ #error "Check skb recycle code in this file to match Linux version"
+ #endif
+ 
+@@ -924,7 +926,6 @@
+ 	dev_put(ndev);
+ }
+ 
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ /*
+  * nss_core_handle_ext_buffer_pkt()
+  *	Handle Extended data plane packet received on physical or virtual interface.
+@@ -969,7 +970,6 @@
+ 		dev_kfree_skb_any(nbuf);
+ 	}
+ }
+-#endif
+ 
+ /*
+  * nss_core_rx_pbuf()
+@@ -986,9 +986,7 @@
+ 	NSS_PKT_STATS_DEC(&nss_ctx->nss_top->stats_drv[NSS_DRV_STATS_NSS_SKB_COUNT]);
+ 
+ 	if (interface_num >= NSS_MAX_NET_INTERFACES) {
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 		NSS_PKT_STATS_INC(&nss_ctx->nss_top->stats_drv[NSS_DRV_STATS_RX_INVALID_INTERFACE]);
+-#endif
+ 		nss_warning("%px: Invalid interface_num: %d", nss_ctx, interface_num);
+ 		dev_kfree_skb_any(nbuf);
+ 		return;
+@@ -998,9 +996,7 @@
+ 	 * Check if core_id value is valid.
+ 	 */
+ 	if (core_id > nss_top_main.num_nss) {
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 		NSS_PKT_STATS_INC(&nss_ctx->nss_top->stats_drv[NSS_DRV_STATS_RX_INVALID_CORE_ID]);
+-#endif
+ 		nss_warning("%px: Invalid core id: %d", nss_ctx, core_id);
+ 		dev_kfree_skb_any(nbuf);
+ 		return;
+@@ -1032,11 +1028,9 @@
+ 		nss_core_handle_bounced_pkt(nss_ctx, reg, nbuf);
+ 		break;
+ 
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	case N2H_BUFFER_PACKET_EXT:
+ 		nss_core_handle_ext_buffer_pkt(nss_ctx, interface_num, nbuf, napi, desc->bit_flags);
+ 		break;
+-#endif
+ 
+ 	case N2H_BUFFER_STATUS:
+ 		NSS_PKT_STATS_INC(&nss_ctx->nss_top->stats_drv[NSS_DRV_STATS_RX_STATUS]);
+@@ -1068,9 +1062,7 @@
+ 		break;
+ 
+ 	default:
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 		NSS_PKT_STATS_INC(&nss_ctx->nss_top->stats_drv[NSS_DRV_STATS_RX_INVALID_BUFFER_TYPE]);
+-#endif
+ 		nss_warning("%px: Invalid buffer type %d received from NSS", nss_ctx, buffer_type);
+ 		dev_kfree_skb_any(nbuf);
+ 	}
+@@ -1555,13 +1547,13 @@
+ 	start = hlos_index;
+ 	end = (hlos_index + count) & mask;
+ 	if (end > start) {
+-		dmac_inv_range((void *)&desc_ring[start], (void *)&desc_ring[end] + sizeof(struct n2h_descriptor));
++		dmac_flush_range((void *)&desc_ring[start], (void *)&desc_ring[end] + sizeof(struct n2h_descriptor));
+ 	} else {
+ 		/*
+ 		 * We have wrapped around
+ 		 */
+-		dmac_inv_range((void *)&desc_ring[start], (void *)&desc_ring[mask] + sizeof(struct n2h_descriptor));
+-		dmac_inv_range((void *)&desc_ring[0], (void *)&desc_ring[end] + sizeof(struct n2h_descriptor));
++		dmac_flush_range((void *)&desc_ring[start], (void *)&desc_ring[mask] + sizeof(struct n2h_descriptor));
++		dmac_flush_range((void *)&desc_ring[0], (void *)&desc_ring[end] + sizeof(struct n2h_descriptor));
+ 	}
+ 
+ 	/*
+@@ -2007,13 +1999,13 @@
+ 	 * Flush the descriptors, including the descriptor at prev_hlos_index.
+ 	 */
+ 	if (prev_hlos_index > start) {
+-		dmac_clean_range((void *)&desc_ring[start], (void *)&desc_ring[prev_hlos_index] + sizeof(struct h2n_descriptor));
++		dmac_flush_range((void *)&desc_ring[start], (void *)&desc_ring[prev_hlos_index] + sizeof(struct h2n_descriptor));
+ 	} else {
+ 		/*
+ 		 * We have wrapped around
+ 		 */
+-		dmac_clean_range((void *)&desc_ring[start], (void *)&desc_ring[mask] + sizeof(struct h2n_descriptor));
+-		dmac_clean_range((void *)&desc_ring[0], (void *)&desc_ring[prev_hlos_index] + sizeof(struct h2n_descriptor));
++		dmac_flush_range((void *)&desc_ring[start], (void *)&desc_ring[mask] + sizeof(struct h2n_descriptor));
++		dmac_flush_range((void *)&desc_ring[0], (void *)&desc_ring[prev_hlos_index] + sizeof(struct h2n_descriptor));
+ 	}
+ 
+ 	/*
+@@ -2664,7 +2656,6 @@
+ 	nbuf->head_frag = head_frag;
+ #endif
+ }
+-#endif
+ 
+ /*
+  * nss_core_send_buffer_simple_skb()
+@@ -2757,6 +2748,8 @@
+ 	return 1;
+ }
+ 
++#endif /* NSS_SKB_REUSE_SUPPORT */
++
+ /*
+  * nss_core_send_buffer_nr_frags()
+  *	Sends frags array (NETIF_F_SG) to NSS FW
+--- a/nss_core.h
++++ b/nss_core.h
+@@ -113,10 +113,10 @@
+ {
+ 	switch (direction) {
+ 	case DMA_FROM_DEVICE:/* invalidate only */
+-		dmac_inv_range(start, start + size);
++		dmac_flush_range(start, start + size);
+ 		break;
+ 	case DMA_TO_DEVICE:/* writeback only */
+-		dmac_clean_range(start, start + size);
++		dmac_flush_range(start, start + size);
+ 		break;
+ 	case DMA_BIDIRECTIONAL:/* writeback and invalidate */
+ 		dmac_flush_range(start, start + size);
+@@ -966,6 +966,8 @@
+  * APIs provided by nss_tx_rx.c
+  */
+ extern void nss_rx_handle_status_pkt(struct nss_ctx_instance *nss_ctx, struct sk_buff *nbuf);
++extern void nss_core_handle_nss_status_pkt(struct nss_ctx_instance *nss_ctx, struct sk_buff *nbuf);
++extern void nss_skb_reuse(struct sk_buff *nbuf);
+ 
+ /*
+  * APIs provided by nss_stats.c
+@@ -978,7 +980,11 @@
+  */
+ extern void nss_log_init(void);
+ extern bool nss_debug_log_buffer_alloc(uint8_t nss_id, uint32_t nentry);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++extern int nss_logbuffer_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos);
++#else
+ extern int nss_logbuffer_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos);
++#endif
+ 
+ /*
+  * APIs to set jumbo_mru & paged_mode
+--- a/nss_coredump.c
++++ b/nss_coredump.c
+@@ -113,8 +113,9 @@
+ 		}
+ 	} while (timed++ < nss_top_main.num_nss * 2);
+ 
+-	if (timed >= nss_top_main.num_nss * 2)
++	if (timed >= nss_top_main.num_nss * 2) {
+ 		nss_warning("might get %d FW dumped", dumped);
++	}
+ 
+ 	return	NOTIFY_DONE;
+ }
+--- a/nss_drv_strings.c
++++ b/nss_drv_strings.c
+@@ -19,6 +19,7 @@
+ #include "nss_stats.h"
+ #include "nss_core.h"
+ #include "nss_strings.h"
++#include "nss_drv_strings.h"
+ 
+ /*
+  * nss_drv_strings_stats
+@@ -90,3 +91,4 @@
+ {
+ 	nss_strings_create_dentry("drv", &nss_drv_strings_ops);
+ }
++#include "nss_drv_strings.h"
+--- a/nss_dynamic_interface.c
++++ b/nss_dynamic_interface.c
+@@ -223,7 +223,7 @@
+ 	core_id = nss_top_main.dynamic_interface_table[type];
+ 	nss_ctx = (struct nss_ctx_instance *)&nss_top_main.nss[core_id];
+ 	di_data.if_num = -1;
+-	di_data.response = false;
++	di_data.response = NSS_CMN_RESPONSE_LAST;
+ 	init_completion(&di_data.complete);
+ 
+ 	nss_dynamic_interface_msg_init(&ndim, NSS_DYNAMIC_INTERFACE, NSS_DYNAMIC_INTERFACE_ALLOC_NODE,
+@@ -282,7 +282,7 @@
+ 
+ 	core_id = nss_top_main.dynamic_interface_table[type];
+ 	nss_ctx = (struct nss_ctx_instance *)&nss_top_main.nss[core_id];
+-	di_data.response = false;
++	di_data.response = NSS_CMN_RESPONSE_LAST;
+ 	init_completion(&di_data.complete);
+ 
+ 	if (nss_is_dynamic_interface(if_num) == false) {
+--- a/nss_dynamic_interface_log.c
++++ b/nss_dynamic_interface_log.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_dynamic_interface_log.h"
+ 
+ /*
+  * nss_dynamic_interface_log_message_types_str
+--- a/nss_dynamic_interface_stats.c
++++ b/nss_dynamic_interface_stats.c
+@@ -18,6 +18,7 @@
+ 
+ #include "nss_tx_rx_common.h"
+ #include "nss_dynamic_interface.h"
++#include "nss_dynamic_interface_stats.h"
+ 
+ /*
+  * nss_dynamic_interface_type_names
+@@ -43,11 +44,7 @@
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_BRIDGE",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_VLAN",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_RESERVED_3",
+-#if (NSS_FW_VERSION_CODE <= NSS_FW_VERSION(11,0))
+-	"NSS_DYNAMIC_INTERFACE_TYPE_WIFILI",
+-#else
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_INTERNAL",
+-#endif
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_MAP_T_INNER",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_MAP_T_OUTER",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_GRE_TUNNEL_INNER",
+@@ -84,22 +81,13 @@
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_IGS",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_CLMAP_US",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_CLMAP_DS",
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_VXLAN_INNER",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_VXLAN_OUTER",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_MATCH",
+-#endif
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_RMNET_RX_N2H",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_RMNET_RX_H2N",
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL0",
+ 	"NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL1",
+-#endif
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,1))
+-	"NSS_DYNAMIC_INTERFACE_TYPE_TLS_INNER",
+-	"NSS_DYNAMIC_INTERFACE_TYPE_TLS_OUTER",
+-	"NSS_DYNAMIC_INTERFACE_TYPE_MIRROR",
+-#endif
+ };
+ 
+ /*
+--- a/nss_eth_rx.c
++++ b/nss_eth_rx.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include <nss_core.h>
++#include "nss_tx_rx_common.h"
+ #include "nss_eth_rx_stats.h"
+ #include "nss_eth_rx_strings.h"
+ 
+--- a/nss_eth_rx_strings.c
++++ b/nss_eth_rx_strings.c
+@@ -19,6 +19,7 @@
+ #include "nss_stats.h"
+ #include "nss_core.h"
+ #include "nss_strings.h"
++#include "nss_eth_rx_strings.h"
+ 
+ /*
+  * nss_eth_rx_strings_stats
+--- a/nss_hal/nss_hal.c
++++ b/nss_hal/nss_hal.c
+@@ -88,7 +88,6 @@
+ 	return 0;
+ }
+ 
+-
+ /*
+  * nss_hal_dt_parse_features()
+  */
+@@ -99,12 +98,14 @@
+ 	 */
+ 	npd->bridge_enabled = of_property_read_bool(np, "qcom,bridge-enabled");
+ 	npd->capwap_enabled = of_property_read_bool(np, "qcom,capwap-enabled");
++	npd->clmap_enabled = of_property_read_bool(np, "qcom,clmap-enabled");
+ 	npd->crypto_enabled = of_property_read_bool(np, "qcom,crypto-enabled");
+ 	npd->dtls_enabled = of_property_read_bool(np, "qcom,dtls-enabled");
+ 	npd->gre_enabled = of_property_read_bool(np, "qcom,gre-enabled");
+ 	npd->gre_redir_enabled = of_property_read_bool(np, "qcom,gre-redir-enabled");
+ 	npd->gre_tunnel_enabled = of_property_read_bool(np, "qcom,gre_tunnel_enabled");
+ 	npd->gre_redir_mark_enabled = of_property_read_bool(np, "qcom,gre-redir-mark-enabled");
++	npd->igs_enabled = of_property_read_bool(np, "qcom,igs-enabled");
+ 	npd->ipsec_enabled = of_property_read_bool(np, "qcom,ipsec-enabled");
+ 	npd->ipv4_enabled = of_property_read_bool(np, "qcom,ipv4-enabled");
+ 	npd->ipv4_reasm_enabled = of_property_read_bool(np, "qcom,ipv4-reasm-enabled");
+@@ -118,18 +119,20 @@
+ 	npd->pptp_enabled = of_property_read_bool(np, "qcom,pptp-enabled");
+ 	npd->portid_enabled = of_property_read_bool(np, "qcom,portid-enabled");
+ 	npd->pvxlan_enabled = of_property_read_bool(np, "qcom,pvxlan-enabled");
+-	npd->clmap_enabled = of_property_read_bool(np, "qcom,clmap-enabled");
+ 	npd->qvpn_enabled = of_property_read_bool(np, "qcom,qvpn-enabled");
+ 	npd->rmnet_rx_enabled = of_property_read_bool(np, "qcom,rmnet_rx-enabled");
+ 	npd->shaping_enabled = of_property_read_bool(np, "qcom,shaping-enabled");
++	npd->tls_enabled = of_property_read_bool(np, "qcom,tls-enabled");
+ 	npd->tstamp_enabled = of_property_read_bool(np, "qcom,tstamp-enabled");
+ 	npd->turbo_frequency = of_property_read_bool(np, "qcom,turbo-frequency");
+ 	npd->tun6rd_enabled = of_property_read_bool(np, "qcom,tun6rd-enabled");
+ 	npd->tunipip6_enabled = of_property_read_bool(np, "qcom,tunipip6-enabled");
+ 	npd->vlan_enabled = of_property_read_bool(np, "qcom,vlan-enabled");
++	npd->vxlan_enabled = of_property_read_bool(np, "qcom,vxlan-enabled");
+ 	npd->wlanredirect_enabled = of_property_read_bool(np, "qcom,wlanredirect-enabled");
+ 	npd->wifioffload_enabled = of_property_read_bool(np, "qcom,wlan-dataplane-offload-enabled");
+-	npd->igs_enabled = of_property_read_bool(np, "qcom,igs-enabled");
++	npd->match_enabled = of_property_read_bool(np, "qcom,match-enabled");
++	npd->mirror_enabled = of_property_read_bool(np, "qcom,mirror-enabled");
+ }
+ /*
+  * nss_hal_clean_up_irq()
+@@ -564,18 +567,15 @@
+ 		nss_top->dynamic_interface_table[NSS_DYNAMIC_INTERFACE_TYPE_VAP] = nss_dev->id;
+ 		nss_wifi_register_handler();
+ 		nss_wifili_register_handler();
+-#if (NSS_FW_VERSION_CODE <= NSS_FW_VERSION(11,0))
+-		nss_top->dynamic_interface_table[NSS_DYNAMIC_INTERFACE_TYPE_WIFILI] = nss_dev->id;
+-#else
+ 		nss_top->dynamic_interface_table[NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_INTERNAL] = nss_dev->id;
+ 		nss_top->dynamic_interface_table[NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL0] = nss_dev->id;
+ 		nss_top->dynamic_interface_table[NSS_DYNAMIC_INTERFACE_TYPE_WIFILI_EXTERNAL1] = nss_dev->id;
++
+ 		/*
+ 		 * Register wifi mac database when offload enabled
+ 		 */
+ 		nss_top->wmdb_handler_id = nss_dev->id;
+ 		nss_wifi_mac_db_register_handler();
+-#endif
+ 	}
+ #endif
+ 
+--- a/nss_if.c
++++ b/nss_if.c
+@@ -21,6 +21,7 @@
+ 
+ #include "nss_tx_rx_common.h"
+ #include "nss_if_log.h"
++#include "exports/nss_if.h"
+ 
+ /*
+  * nss_if_pvt
+--- a/nss_if_log.c
++++ b/nss_if_log.c
+@@ -22,6 +22,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_if_log.h"
+ 
+ /*
+  * nss_if_log_message_types_str
+--- a/nss_init.c
++++ b/nss_init.c
+@@ -52,6 +52,12 @@
+ #include <linux/regulator/consumer.h>
+ #include <linux/clk.h>
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#define NSS_SYSCTL_TABLE const struct ctl_table
++#else
++#define NSS_SYSCTL_TABLE struct ctl_table
++#endif
++
+ /*
+  * Global declarations
+  */
+@@ -115,10 +121,18 @@
+  * nss_remove()
+  *	HLOS device remove callback
+  */
+-static inline int nss_remove(struct platform_device *nss_dev)
++static inline int nss_remove_legacy(struct platform_device *nss_dev)
+ {
+ 	return nss_hal_remove(nss_dev);
+ }
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static inline void nss_remove(struct platform_device *nss_dev)
++{
++	nss_hal_remove(nss_dev);
++}
++#else
++#define nss_remove nss_remove_legacy
++#endif
+ 
+ #if (NSS_DT_SUPPORT == 1)
+ /*
+@@ -168,7 +182,7 @@
+  * nss_current_freq_handler()
+  *	Handle Userspace Frequency Change Requests
+  */
+-static int nss_current_freq_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_current_freq_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret, i;
+ 
+@@ -228,7 +242,7 @@
+  * nss_auto_scale_handler()
+  *	Enables or Disable Auto Scaling
+  */
+-static int nss_auto_scale_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_auto_scale_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -293,7 +307,7 @@
+  * nss_get_freq_table_handler()
+  *	Display Support Freq and Ex how to Change.
+  */
+-static int nss_get_freq_table_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_get_freq_table_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret, i;
+ 
+@@ -322,7 +336,7 @@
+  * nss_get_average_inst_handler()
+  *	Display AVG Inst Per Ms.
+  */
+-static int nss_get_average_inst_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_get_average_inst_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -344,7 +358,7 @@
+  * nss_debug_handler()
+  *	Enable NSS debug output
+  */
+-static int nss_debug_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_debug_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -364,7 +378,7 @@
+  * nss_coredump_handler()
+  *	Send Signal To Coredump NSS Cores
+  */
+-static int nss_coredump_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_coredump_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	struct nss_ctx_instance *nss_ctx = &nss_top_main.nss[NSS_CORE_0];
+ 	int ret;
+@@ -389,7 +403,7 @@
+  * nss_jumbo_mru_handler()
+  *	Sysctl to modify nss_jumbo_mru
+  */
+-static int nss_jumbo_mru_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_jumbo_mru_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -410,7 +424,7 @@
+  *	Sysctl to modify nss_paged_mode.
+  */
+ 
+-static int nss_paged_mode_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_paged_mode_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -432,7 +446,7 @@
+  * nss_get_min_reuse_handler()
+  *	Sysctl to get min reuse sizes
+  */
+-static int nss_get_min_reuse_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_get_min_reuse_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 	struct nss_ctx_instance *nss_ctx = NULL;
+@@ -459,7 +473,7 @@
+  * nss_max_reuse_handler()
+  *	Sysctl to modify nss_max_reuse
+  */
+-static int nss_max_reuse_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_max_reuse_handler(NSS_SYSCTL_TABLE *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+ 
+@@ -584,6 +598,7 @@
+ 	{ }
+ };
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct ctl_table nss_init_dir[] = {
+ #if (NSS_FREQ_SCALE_SUPPORT == 1)
+ 	{
+@@ -624,8 +639,17 @@
+ 	},
+ 	{ }
+ };
++#endif
+ 
+ static struct ctl_table_header *nss_dev_header;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#if (NSS_FREQ_SCALE_SUPPORT == 1)
++static struct ctl_table_header *nss_clock_header;
++#endif
++#if (NSS_SKB_REUSE_SUPPORT == 1)
++static struct ctl_table_header *nss_skb_reuse_header;
++#endif
++#endif
+ 
+ /*
+  * nss_init()
+@@ -734,7 +758,17 @@
+ 	/*
+ 	 * Register sysctl table.
+ 	 */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++	nss_dev_header = register_sysctl("dev/nss/general", nss_general_table);
++#if (NSS_FREQ_SCALE_SUPPORT == 1)
++	nss_clock_header = register_sysctl("dev/nss/clock", nss_freq_table);
++#endif
++#if (NSS_SKB_REUSE_SUPPORT == 1)
++	nss_skb_reuse_header = register_sysctl("dev/nss/skb_reuse", nss_skb_reuse_table);
++#endif
++#else
+ 	nss_dev_header = register_sysctl_table(nss_root);
++#endif
+ 
+ 	/*
+ 	 * Registering sysctl for ipv4/6 specific config.
+@@ -889,6 +923,16 @@
+ 
+ 	if (nss_dev_header)
+ 		unregister_sysctl_table(nss_dev_header);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#if (NSS_FREQ_SCALE_SUPPORT == 1)
++	if (nss_clock_header)
++		unregister_sysctl_table(nss_clock_header);
++#endif
++#if (NSS_SKB_REUSE_SUPPORT == 1)
++	if (nss_skb_reuse_header)
++		unregister_sysctl_table(nss_skb_reuse_header);
++#endif
++#endif
+ 
+ 	/*
+ 	 * Unregister n2h specific sysctl
+--- a/nss_ipv4.c
++++ b/nss_ipv4.c
+@@ -23,6 +23,9 @@
+ #include "nss_ipv4_stats.h"
+ #include "nss_ipv4_strings.h"
+ 
++extern nss_tx_status_t nss_ipv4_conn_inquiry(struct nss_ipv4_5tuple *ipv4_5t_p,
++				nss_ipv4_msg_callback_t cb);
++
+ #define NSS_IPV4_TX_MSG_TIMEOUT 1000	/* 1 sec timeout for IPv4 messages */
+ 
+ /*
+@@ -584,7 +587,7 @@
+  * nss_ipv4_accel_mode_cfg_handler()
+  *	Configure acceleration mode for IPv4
+  */
+-static int nss_ipv4_accel_mode_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int __maybe_unused nss_ipv4_accel_mode_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	struct nss_top_instance *nss_top = &nss_top_main;
+ 	struct nss_ctx_instance *nss_ctx = &nss_top->nss[0];
+@@ -628,7 +631,7 @@
+  * nss_ipv4_dscp_map_cfg_handler()
+  *	Sysctl handler for dscp/pri mappings.
+  */
+-static int nss_ipv4_dscp_map_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int __maybe_unused nss_ipv4_dscp_map_cfg_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	struct nss_top_instance *nss_top = &nss_top_main;
+ 	struct nss_ctx_instance *nss_ctx = &nss_top->nss[0];
+@@ -679,6 +682,7 @@
+ 	return 0;
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct ctl_table nss_ipv4_table[] = {
+ 	{
+ 		.procname	= "ipv4_accel_mode",
+@@ -725,6 +729,10 @@
+ };
+ 
+ static struct ctl_table_header *nss_ipv4_header;
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static struct ctl_table_header *nss_ipv4_header;
++#endif
+ 
+ /*
+  * nss_ipv4_register_sysctl()
+@@ -738,7 +746,9 @@
+ 	/*
+ 	 * Register sysctl table.
+ 	 */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ 	nss_ipv4_header = register_sysctl_table(nss_ipv4_root);
++#endif
+ }
+ 
+ /*
+--- a/nss_ipv4_strings.c
++++ b/nss_ipv4_strings.c
+@@ -20,6 +20,7 @@
+ #include "nss_core.h"
+ #include <nss_ipv4.h>
+ #include "nss_strings.h"
++#include "nss_ipv4_strings.h"
+ 
+ /*
+  * nss_ipv4_strings_exception_stats
+--- a/nss_ipv6_strings.c
++++ b/nss_ipv6_strings.c
+@@ -81,14 +81,10 @@
+ 	{"tunipip6_needs_fragmentation"			, NSS_STATS_TYPE_EXCEPTION},
+ 	{"pppoe_bridge_no_icme"				, NSS_STATS_TYPE_EXCEPTION},
+ 	{"dont_frag_set"				, NSS_STATS_TYPE_EXCEPTION},
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	{"reassembly_not_supported"			, NSS_STATS_TYPE_EXCEPTION},
+ 	{"pppoe_no_session"				, NSS_STATS_TYPE_DROP},
+ 	{"icmp_gre_header_incomplete"			, NSS_STATS_TYPE_EXCEPTION},
+ 	{"icmp_esp_header_incomplete"			, NSS_STATS_TYPE_EXCEPTION},
+-#else
+-	{"pppoe_no_session"				, NSS_STATS_TYPE_DROP},
+-#endif
+ };
+ 
+ /*
+--- a/nss_log.c
++++ b/nss_log.c
+@@ -524,7 +524,11 @@
+  * nss_logbuffer_handler()
+  *	Enable NSS debug output
+  */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++int nss_logbuffer_handler(const struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++#else
+ int nss_logbuffer_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++#endif
+ {
+ 	int ret;
+ 	int core_status;
+--- a/nss_log.h
++++ b/nss_log.h
+@@ -104,6 +104,7 @@
+  * @return void
+  */
+ typedef void (*nss_log_msg_callback_t)(void *app_data, struct nss_log_debug_interface_msg *msg);
++void nss_debug_interface_set_callback(nss_log_msg_callback_t cb, void *app_data);
+ 
+ /*
+  * Exported by nss_init.c and used in nss_log.c
+--- a/nss_lso_rx.c
++++ b/nss_lso_rx.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include <nss_core.h>
++#include "nss_tx_rx_common.h"
+ #include "nss_lso_rx_stats.h"
+ #include "nss_lso_rx_strings.h"
+ 
+--- a/nss_n2h.c
++++ b/nss_n2h.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_tx_rx_common.h"
++#include "exports/nss_n2h.h"
+ #include "nss_n2h_stats.h"
+ #include "nss_n2h_strings.h"
+ #include "nss_drv_strings.h"
+@@ -1625,6 +1626,7 @@
+ 	return nss_n2h_host_bp_cfg_handler(ctl, write, buffer, lenp, ppos, NSS_CORE_1);
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct ctl_table nss_n2h_table_single_core[] = {
+ 	{
+ 		.procname	= "n2h_empty_pool_buf_core0",
+@@ -1890,6 +1892,10 @@
+ };
+ 
+ static struct ctl_table_header *nss_n2h_header;
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static struct ctl_table_header *nss_n2h_header;
++#endif
+ 
+ /*
+  * nss_n2h_cfg_empty_pool_size()
+@@ -2131,8 +2137,10 @@
+ 	/*
+ 	 * Register sysctl table.
+ 	 */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ 	nss_n2h_dir[0].child = nss_n2h_table_single_core;
+ 	nss_n2h_header = register_sysctl_table(nss_n2h_root);
++#endif
+ }
+ 
+ /*
+@@ -2230,7 +2238,9 @@
+ 	/*
+ 	 * Register sysctl table.
+ 	 */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ 	nss_n2h_header = register_sysctl_table(nss_n2h_root);
++#endif
+ }
+ 
+ /*
+--- a/nss_n2h_stats.c
++++ b/nss_n2h_stats.c
+@@ -38,7 +38,7 @@
+ 	 * Max output lines = #stats + few blank lines for banner printing +
+ 	 * Number of Extra outputlines for future reference to add new stats
+ 	 */
+-	uint32_t max_output_lines = (NSS_N2H_STATS_MAX + 3) * 2 + 5;
++	uint32_t max_output_lines = (NSS_N2H_STATS_MAX + 3) * NSS_MAX_CORES + NSS_STATS_EXTRA_OUTPUT_LINES;
+ 	size_t size_al = NSS_STATS_MAX_STR_LENGTH * max_output_lines;
+ 	size_t size_wr = 0;
+ 	ssize_t bytes_read = 0;
+--- a/nss_n2h_strings.c
++++ b/nss_n2h_strings.c
+@@ -20,6 +20,7 @@
+ #include "nss_core.h"
+ #include <nss_n2h.h>
+ #include "nss_strings.h"
++#include "nss_n2h_strings.h"
+ 
+ /*
+  * nss_n2h_strings_stats
+@@ -38,14 +39,14 @@
+ 	{"ticks"			, NSS_STATS_TYPE_SPECIAL},
+ 	{"worst_ticks"			, NSS_STATS_TYPE_SPECIAL},
+ 	{"iterations"			, NSS_STATS_TYPE_SPECIAL},
+-	{"pbuf_ocm_alloc_fail_payload"	, NSS_STATS_TYPE_SPECIAL},
+-	{"pbuf_ocm_free_count"		, NSS_STATS_TYPE_SPECIAL},
+ 	{"pbuf_ocm_total_count"		, NSS_STATS_TYPE_SPECIAL},
++	{"pbuf_ocm_free_count"		, NSS_STATS_TYPE_SPECIAL},
++	{"pbuf_ocm_alloc_fail_payload"	, NSS_STATS_TYPE_SPECIAL},
+ 	{"pbuf_ocm_alloc_fail_nopayload", NSS_STATS_TYPE_SPECIAL},
+-	{"pbuf_def_alloc_fail_payload"	, NSS_STATS_TYPE_SPECIAL},
++	{"pbuf_def_total_count"		, NSS_STATS_TYPE_SPECIAL},
+ 	{"pbuf_def_free_count"		, NSS_STATS_TYPE_SPECIAL},
++	{"pbuf_def_alloc_fail_payload"	, NSS_STATS_TYPE_SPECIAL},
+ 	{"pbuf_def_alloc_fail_nopayload", NSS_STATS_TYPE_SPECIAL},
+-	{"pbuf_def_total_count"		, NSS_STATS_TYPE_SPECIAL},
+ 	{"payload_alloc_fails"		, NSS_STATS_TYPE_SPECIAL},
+ 	{"payload_free_count"		, NSS_STATS_TYPE_SPECIAL},
+ 	{"h2n_control_pkts"		, NSS_STATS_TYPE_SPECIAL},
+--- a/nss_phys_if.c
++++ b/nss_phys_if.c
+@@ -20,6 +20,9 @@
+  */
+ 
+ #include "nss_tx_rx_common.h"
++#include "exports/nss_phy_if.h"
++
++extern void nss_phys_if_unregister(uint32_t if_num);
+ #include "nss_tstamp.h"
+ #if defined(NSS_HAL_IPQ807x_SUPPORT) || defined(NSS_HAL_IPQ60XX_SUPPORT)
+ #include <nss_dp_api_if.h>
+--- a/nss_pppoe.c
++++ b/nss_pppoe.c
+@@ -203,7 +203,7 @@
+  * nss_pppoe_br_accel_mode_handler()
+  *	Enable/disable pppoe bridge acceleration in NSS
+  */
+-int nss_pppoe_br_accel_mode_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
++static int nss_pppoe_br_accel_mode_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	struct nss_ctx_instance *nss_ctx = nss_pppoe_get_context();
+ 	struct nss_pppoe_msg npm;
+@@ -342,6 +342,7 @@
+ }
+ EXPORT_SYMBOL(nss_unregister_pppoe_session_if);
+ 
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0))
+ static struct ctl_table nss_pppoe_table[] = {
+ 	{
+ 		.procname               = "br_accel_mode",
+@@ -407,6 +408,15 @@
+ 		unregister_sysctl_table(nss_pppoe_header);
+ 	}
+ }
++#else
++void nss_pppoe_register_sysctl(void)
++{
++}
++
++void nss_pppoe_unregister_sysctl(void)
++{
++}
++#endif
+ 
+ /*
+  * nss_pppoe_register_handler()
+--- a/nss_pppoe_log.c
++++ b/nss_pppoe_log.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_pppoe_log.h"
+ 
+ /*
+  * nss_pppoe_log_message_types_str
+--- a/nss_pppoe_strings.c
++++ b/nss_pppoe_strings.c
+@@ -18,6 +18,7 @@
+ 
+ #include "nss_stats.h"
+ #include "nss_core.h"
++#include "nss_pppoe_strings.h"
+ #include <nss_pppoe.h>
+ #include "nss_strings.h"
+ 
+--- a/nss_profiler.c
++++ b/nss_profiler.c
+@@ -204,7 +204,7 @@
+ 		return ctrl;
+ 	}
+ 
+-	dmac_inv_range(ctrl, &ctrl->cidx);
++	dmac_flush_range(ctrl, &ctrl->cidx);
+ 	dsb(sy);
+ 	return ctrl;
+ }
+--- a/nss_project.c
++++ b/nss_project.c
+@@ -268,6 +268,7 @@
+  * the file system. Allows the command $ echo 1 > proc/sys/dev/nss/project/wt_stats
+  * to enable worker thread statistics (echoing 0 into the same target will disable).
+  */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct ctl_table nss_project_table[] = {
+ 	{
+ 		.procname		= "wt_stats",
+@@ -307,6 +308,10 @@
+ };
+ 
+ static struct ctl_table_header *nss_project_header;
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static struct ctl_table_header *nss_project_header;
++#endif
+ 
+ /*
+  * nss_project_register_sysctl()
+@@ -314,7 +319,9 @@
+  */
+ void nss_project_register_sysctl(void)
+ {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ 	nss_project_header = register_sysctl_table(nss_project_root);
++#endif
+ }
+ 
+ /*
+--- a/nss_rps.c
++++ b/nss_rps.c
+@@ -532,6 +532,7 @@
+ 	return ret_pri_map;
+ }
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ static struct ctl_table nss_rps_table[] = {
+ 	{
+ 		.procname	= "enable",
+@@ -585,11 +586,16 @@
+ };
+ 
+ static struct ctl_table_header *nss_rps_header;
++#endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++static struct ctl_table_header *nss_rps_header;
++#endif
+ 
+ /*
+  * nss_rps_pri_map_init_handler()
+  *	Initialize pri_map for priority based rps selection.
+  */
++extern void nss_rps_pri_map_init_handler(void);
+ void nss_rps_pri_map_init_handler(void)
+ {
+ 	int i;
+@@ -620,7 +626,9 @@
+ 	/*
+ 	 * Register sysctl table.
+ 	 */
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+ 	nss_rps_header = register_sysctl_table(nss_rps_root);
++#endif
+ }
+ 
+ /*
+--- a/nss_stats.c
++++ b/nss_stats.c
+@@ -67,6 +67,7 @@
+  * nss_stats_nonzero_handler()
+  *	Handler to take nonzero stats print configuration.
+  */
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0))
+ static int nss_stats_nonzero_handler(struct ctl_table *ctl, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+ {
+ 	int ret;
+@@ -124,6 +125,11 @@
+ 	 */
+ 	nss_stats_header = register_sysctl_table(nss_stats_root);
+ }
++#else
++void nss_stats_register_sysctl(void)
++{
++}
++#endif
+ 
+ /*
+  * nss_stats_open()
+@@ -243,7 +249,7 @@
+ 		size_wr += scnprintf(lbuf + size_wr, size_al - size_wr, "<");
+ 	}
+ 
+-	strlcpy(node_upr, node, NSS_STATS_NODE_NAME_MAX);
++	strscpy(node_upr, node, NSS_STATS_NODE_NAME_MAX);
+ 	for (i = 0; node_upr[i] != '\0' && i < NSS_STATS_NODE_NAME_MAX; i++) {
+ 		node_upr[i] = toupper(node_upr[i]);
+ 	}
+@@ -308,7 +314,7 @@
+ 			continue;
+ 		}
+ 
+-		strlcpy(stats_string, stats_info[i].stats_name, NSS_STATS_MAX_STR_LENGTH);
++		strscpy(stats_string, stats_info[i].stats_name, NSS_STATS_MAX_STR_LENGTH);
+ 
+ 		/*
+ 		 * Converting  uppercase to lower case.
+@@ -317,7 +323,7 @@
+ 			stats_string[j] = tolower(stats_string[j]);
+ 		}
+ 
+-		strlcpy(node_lwr, node, NSS_STATS_NODE_NAME_MAX);
++		strscpy(node_lwr, node, NSS_STATS_NODE_NAME_MAX);
+ 		for (j = 0; node_lwr[j] != '\0' && j < NSS_STATS_NODE_NAME_MAX; j++) {
+ 			node_lwr[j] = tolower(node_lwr[j]);
+ 		}
+--- a/nss_tx_rx_common.h
++++ b/nss_tx_rx_common.h
+@@ -96,9 +96,7 @@
+ extern void nss_ppe_register_handler(void);
+ extern void nss_gre_redir_mark_register_handler(void);
+ extern void nss_ppe_vp_register_handler(void);
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ extern void nss_wifi_mac_db_register_handler(void);
+-#endif
+ 
+ /*
+  * nss_if_msg_handler()
+--- a/nss_unaligned_log.c
++++ b/nss_unaligned_log.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_unaligned_log.h"
+ 
+ /*
+  * nss_unaligned_log_message_types_str
+--- a/nss_virt_if_stats.c
++++ b/nss_virt_if_stats.c
+@@ -16,6 +16,7 @@
+ 
+ #include "nss_core.h"
+ #include "nss_virt_if_stats.h"
++#include "nss_virt_if_stats.h"
+ 
+ /*
+  * Data structure that holds the virtual interface context.
+@@ -130,7 +131,7 @@
+  * nss_virt_if_stats_get()
+  *	Get virt_if base node stats or interface stats by interface number.
+  */
+-bool nss_virt_if_stats_get(struct nss_ctx_instance *nss_ctx, uint32_t if_num, void *stats, bool is_base)
++static bool nss_virt_if_stats_get(struct nss_ctx_instance *nss_ctx, uint32_t if_num, void *stats, bool is_base)
+ {
+ 	if (nss_virt_if_verify_if_num(if_num) == false) {
+ 		return false;
+--- a/nss_wifi_if_stats.c
++++ b/nss_wifi_if_stats.c
+@@ -16,6 +16,7 @@
+ 
+ #include "nss_core.h"
+ #include "nss_wifi_if.h"
++#include "nss_wifi_if_stats.h"
+ 
+ /*
+  * Data structure that holds the wifi interface context.
+--- a/nss_wifi_log.c
++++ b/nss_wifi_log.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_wifi_log.h"
+ 
+ /*
+  * nss_wifi_log_message_types_str
+--- a/nss_wifi_mac_db.c
++++ b/nss_wifi_mac_db.c
+@@ -19,6 +19,8 @@
+ #include "nss_core.h"
+ #include "nss_wifi_mac_db_if.h"
+ 
++void nss_wifi_mac_db_register_handler(void);
++
+ #define NSS_WIFI_MAC_DB_TX_TIMEOUT 1000 /* Millisecond to jiffies*/
+ 
+ /*
+--- a/nss_wifili.c
++++ b/nss_wifili.c
+@@ -19,6 +19,10 @@
+ #include "nss_wifili_log.h"
+ #include "nss_wifili_strings.h"
+ 
++struct nss_ctx_instance *nss_wifili_get_context(void);
++void nss_wifili_msg_init(struct nss_wifili_msg *ncm, uint16_t if_num,
++	uint32_t type, uint32_t len, void *cb, void *app_data);
++
+ #define NSS_WIFILI_TX_TIMEOUT 1000 /* Millisecond to jiffies*/
+ 
+ /*
+@@ -50,11 +54,8 @@
+ 	 */
+ 	BUG_ON((nss_is_dynamic_interface(ncm->interface))
+ 		|| ((ncm->interface != NSS_WIFILI_INTERNAL_INTERFACE)
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE0)
+-		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE1)
+-#endif
+-		));
++		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE1)));
+ 
+ 	/*
+ 	 * Trace messages.
+@@ -175,13 +176,8 @@
+ 	 * The interface number shall be one of the wifili soc interfaces
+ 	 */
+ 	if ((ncm->interface != NSS_WIFILI_INTERNAL_INTERFACE)
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE0)
+-		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE1))
+-#else
+-	)
+-#endif
+-	{
++		&& (ncm->interface != NSS_WIFILI_EXTERNAL_INTERFACE1)) {
+ 		nss_warning("%px: tx request for interface that is not a wifili: %d", nss_ctx, ncm->interface);
+ 		return NSS_TX_FAILURE;
+ 	}
+@@ -238,7 +234,6 @@
+  * nss_get_available_wifili_external_if()
+  *	Check and return the available external interface
+  */
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ uint32_t nss_get_available_wifili_external_if(void)
+ {
+ 	struct nss_ctx_instance *nss_ctx = (struct nss_ctx_instance *)&nss_top_main.nss[nss_top_main.wifi_handler_id];
+@@ -259,7 +254,7 @@
+ 	return NSS_MAX_NET_INTERFACES;
+ }
+ EXPORT_SYMBOL(nss_get_available_wifili_external_if);
+-#endif
++
+ /*
+  * nss_wifili_msg_init()
+  *	Initialize nss_wifili_msg.
+@@ -371,10 +366,9 @@
+ 
+ 	nss_info("nss_wifili_register_handler");
+ 	nss_core_register_handler(nss_ctx, NSS_WIFILI_INTERNAL_INTERFACE, nss_wifili_handler, NULL);
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	nss_core_register_handler(nss_ctx, NSS_WIFILI_EXTERNAL_INTERFACE0, nss_wifili_handler, NULL);
+ 	nss_core_register_handler(nss_ctx, NSS_WIFILI_EXTERNAL_INTERFACE1, nss_wifili_handler, NULL);
+-#endif
++
+ 	nss_wifili_stats_dentry_create();
+ 	nss_wifili_strings_dentry_create();
+ 
+--- a/nss_wifili_log.c
++++ b/nss_wifili_log.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ #include "nss_core.h"
++#include "nss_wifili_log.h"
+ 
+ /*
+  * nss_wifili_log_message_types_str
+--- a/nss_wifili_stats.c
++++ b/nss_wifili_stats.c
+@@ -248,7 +248,6 @@
+ 		nwss->soc_maxpdev = NSS_WIFILI_MAX_PDEV_NUM_MSG;
+ 		break;
+ 
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	case NSS_WIFILI_EXTERNAL_INTERFACE0:
+ 		nwss = &soc_stats[1];
+ 		nwss->soc_maxpdev = NSS_WIFILI_SOC_ATTACHED_MAX_PDEV_NUM;
+@@ -258,7 +257,6 @@
+ 		nwss = &soc_stats[2];
+ 		nwss->soc_maxpdev = NSS_WIFILI_SOC_ATTACHED_MAX_PDEV_NUM;
+ 		break;
+-#endif
+ 
+ 	default:
+ 		nss_warning("%px: Invalid wifili interface\n", nss_ctx);
+@@ -472,7 +470,6 @@
+ 		index = 0;
+ 		break;
+ 
+-#if (NSS_FW_VERSION_CODE > NSS_FW_VERSION(11,0))
+ 	case NSS_WIFILI_EXTERNAL_INTERFACE0:
+ 		index = 1;
+ 		break;
+@@ -480,7 +477,6 @@
+ 	case NSS_WIFILI_EXTERNAL_INTERFACE1:
+ 		index = 2;
+ 		break;
+-#endif
+ 
+ 	default:
+ 		nss_warning("%px: Invalid wifili interface\n", nss_ctx);
+--- a/.dep_files
++++ b/.dep_files
+@@ -0,0 +1 @@
++65b220dd2c3e3e2ff3349c5e477fb596

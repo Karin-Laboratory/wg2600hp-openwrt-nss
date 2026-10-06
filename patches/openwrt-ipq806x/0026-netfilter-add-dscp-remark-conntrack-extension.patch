@@ -1,0 +1,142 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 10:00:00 +0900
+Subject: [PATCH] netfilter: add conntrack DSCP remark extension used by ECM
+
+The QCA ECM DSCP classifier consumes the downstream DSCP remark conntrack
+extension.  Linux 6.12 has the generic conntrack extension framework but not
+this QSDK extension, so provide it as a normal built-in conntrack extension.
+
+--- a/include/net/netfilter/nf_conntrack_extend.h
++++ b/include/net/netfilter/nf_conntrack_extend.h
+@@ -25,6 +25,9 @@
+ #ifdef CONFIG_NF_CONNTRACK_LABELS
+ 	NF_CT_EXT_LABELS,
+ #endif
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++	NF_CT_EXT_DSCPREMARK,
++#endif
+ #if IS_ENABLED(CONFIG_NETFILTER_SYNPROXY)
+ 	NF_CT_EXT_SYNPROXY,
+ #endif
+--- /dev/null
++++ b/include/net/netfilter/nf_conntrack_dscpremark_ext.h
+@@ -0,0 +1,47 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _NF_CONNTRACK_DSCPREMARK_EXT_H
++#define _NF_CONNTRACK_DSCPREMARK_EXT_H
++
++#include <net/netfilter/nf_conntrack.h>
++#include <net/netfilter/nf_conntrack_extend.h>
++
++#define NF_CT_DSCPREMARK_EXT_DSCP_RULE_VALID 0x1
++#define NF_CT_DSCPREMARK_EXT_RULE_VALID 0x1
++#define NF_CT_DSCPREMARK_EXT_RULE_NOT_VALID 0x0
++
++struct nf_ct_dscpremark_ext {
++	__u32 flow_priority;
++	__u32 reply_priority;
++	__u8 flow_dscp;
++	__u8 reply_dscp;
++	__u16 rule_flags;
++};
++
++static inline struct nf_ct_dscpremark_ext *
++nf_ct_dscpremark_ext_find(const struct nf_conn *ct)
++{
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++	return nf_ct_ext_find(ct, NF_CT_EXT_DSCPREMARK);
++#else
++	return NULL;
++#endif
++}
++
++static inline struct nf_ct_dscpremark_ext *
++nf_ct_dscpremark_ext_add(struct nf_conn *ct, gfp_t gfp)
++{
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++	return nf_ct_ext_add(ct, NF_CT_EXT_DSCPREMARK, gfp);
++#else
++	return NULL;
++#endif
++}
++
++static inline int nf_conntrack_dscpremark_ext_init(void) { return 0; }
++static inline void nf_conntrack_dscpremark_ext_fini(void) { }
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++int nf_conntrack_dscpremark_ext_set_dscp_rule_valid(struct nf_conn *ct);
++int nf_conntrack_dscpremark_ext_get_dscp_rule_validity(struct nf_conn *ct);
++#endif
++
++#endif
+--- a/net/netfilter/Kconfig
++++ b/net/netfilter/Kconfig
+@@ -206,0 +207,7 @@
++config NF_CONNTRACK_DSCPREMARK_EXT
++	bool "Connection tracking DSCP remark extension"
++	depends on NETFILTER_ADVANCED
++	default y
++	help
++	  Store DSCP remark rule state in conntrack entries for ECM.
++
+--- a/net/netfilter/Makefile
++++ b/net/netfilter/Makefile
+@@ -11,3 +11,4 @@
+ nf_conntrack-$(CONFIG_NF_CONNTRACK_EVENTS) += nf_conntrack_ecache.o
+ nf_conntrack-$(CONFIG_NF_CONNTRACK_LABELS) += nf_conntrack_labels.o
++nf_conntrack-$(CONFIG_NF_CONNTRACK_DSCPREMARK_EXT) += nf_conntrack_dscpremark_ext.o
+ nf_conntrack-$(CONFIG_NF_CONNTRACK_OVS) += nf_conntrack_ovs.o
+--- /dev/null
++++ b/net/netfilter/nf_conntrack_dscpremark_ext.c
+@@ -0,0 +1,24 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include <linux/export.h>
++#include <linux/kernel.h>
++#include <net/netfilter/nf_conntrack_dscpremark_ext.h>
++
++int nf_conntrack_dscpremark_ext_set_dscp_rule_valid(struct nf_conn *ct)
++{
++	struct nf_ct_dscpremark_ext *ext = nf_ct_dscpremark_ext_find(ct);
++
++	if (!ext)
++		return -ENOENT;
++	ext->rule_flags = NF_CT_DSCPREMARK_EXT_DSCP_RULE_VALID;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(nf_conntrack_dscpremark_ext_set_dscp_rule_valid);
++
++int nf_conntrack_dscpremark_ext_get_dscp_rule_validity(struct nf_conn *ct)
++{
++	struct nf_ct_dscpremark_ext *ext = nf_ct_dscpremark_ext_find(ct);
++
++	return ext && (ext->rule_flags & NF_CT_DSCPREMARK_EXT_DSCP_RULE_VALID) ?
++		NF_CT_DSCPREMARK_EXT_RULE_VALID : NF_CT_DSCPREMARK_EXT_RULE_NOT_VALID;
++}
++EXPORT_SYMBOL_GPL(nf_conntrack_dscpremark_ext_get_dscp_rule_validity);
+--- a/net/netfilter/nf_conntrack_extend.c
++++ b/net/netfilter/nf_conntrack_extend.c
+@@ -20,1 +20,2 @@
+ #include <net/netfilter/nf_conntrack_extend.h>
++#include <net/netfilter/nf_conntrack_dscpremark_ext.h>
+@@ -51,1 +51,4 @@
+ #endif
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++	[NF_CT_EXT_DSCPREMARK] = sizeof(struct nf_ct_dscpremark_ext),
++#endif
+@@ -83,1 +83,4 @@
+ #endif
++#ifdef CONFIG_NF_CONNTRACK_DSCPREMARK_EXT
++		+ sizeof(struct nf_ct_dscpremark_ext)
++#endif
+--- a/net/netfilter/nf_conntrack_core.c
++++ b/net/netfilter/nf_conntrack_core.c
+@@ -43,4 +43,5 @@
+ #include <net/netfilter/nf_conntrack_timestamp.h>
+ #include <net/netfilter/nf_conntrack_timeout.h>
+ #include <net/netfilter/nf_conntrack_labels.h>
++#include <net/netfilter/nf_conntrack_dscpremark_ext.h>
+ #include <net/netfilter/nf_conntrack_synproxy.h>
+@@ -1800,1 +1800,2 @@
+ 	nf_ct_labels_ext_add(ct);
++	nf_ct_dscpremark_ext_add(ct, GFP_ATOMIC);
++

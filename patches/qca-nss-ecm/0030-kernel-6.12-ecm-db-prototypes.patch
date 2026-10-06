@@ -1,0 +1,8 @@
+--- a/ecm_db/ecm_db.h
++++ b/ecm_db/ecm_db.h
+@@ -24,1 +24,5 @@
+ #define ECM_DB_H_
++struct dentry;
++int ecm_db_init(struct dentry *dentry);
++void ecm_db_exit(void);
++

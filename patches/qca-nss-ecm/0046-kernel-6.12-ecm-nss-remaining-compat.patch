@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 15:00:00 +0900
+Subject: [PATCH] qca-nss-ecm: finish remaining NSS API declarations
+
+Replace the last direct downstream net_device extension access and declare
+existing NSS/PCC callbacks in their public headers.
+
+--- a/frontends/nss/ecm_nss_non_ported_ipv4.c
++++ b/frontends/nss/ecm_nss_non_ported_ipv4.c
+@@ -676,1 +676,1 @@
+-				if (dev->priv_flags_ext & IFF_EXT_GRE_V4_TAP) {
++				if (ecm_netdev_priv_flags_ext(dev) & IFF_EXT_GRE_V4_TAP) {
+--- a/frontends/nss/ecm_nss_non_ported_ipv4.h
++++ b/frontends/nss/ecm_nss_non_ported_ipv4.h
+@@ -19,1 +19,2 @@
+ */
++extern bool ecm_nss_non_ported_ipv4_connection_defunct_callback(void *arg, int *accel_mode);
+--- a/ecm_classifier_pcc.h
++++ b/ecm_classifier_pcc.h
+@@ -15,1 +15,3 @@
+ */
++extern int ecm_classifier_pcc_init(struct dentry *dentry);
++extern void ecm_classifier_pcc_exit(void);
+-- 
+2.43.0

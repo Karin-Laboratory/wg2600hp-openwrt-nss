@@ -1,0 +1,6 @@
+--- a/nss_freq_log.c
++++ b/nss_freq_log.c
+@@ -20,1 +20,3 @@
+ #include "nss_core.h"
++struct nss_corefreq_msg;
++#include "nss_freq_log.h"

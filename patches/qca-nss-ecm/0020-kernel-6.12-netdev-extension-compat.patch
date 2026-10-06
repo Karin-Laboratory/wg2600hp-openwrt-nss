@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 08:20:00 +0900
+Subject: [PATCH] qca-nss-ecm: provide Linux 6.12 netdev extension compatibility
+
+Linux 6.12 does not expose the downstream priv_flags_ext member or the
+IFF_EXT_* definitions used by ECM.  Derive the public GRE TAP cases from
+rtnl_link_ops and keep the remaining downstream-only classifications
+conservative when the upstream kernel has no equivalent metadata.
+
+--- a/ecm_types.h
++++ b/ecm_types.h
+@@ -22,0 +23,49 @@
++#include <linux/netdevice.h>
++#include <linux/string.h>
++
++/* Linux 6.12 has no public equivalent of the downstream extension flags. */
++#ifndef IFF_EXT_GRE_V4_TAP
++#define IFF_EXT_GRE_V4_TAP BIT(0)
++#define IFF_EXT_GRE_V6_TAP BIT(1)
++#define IFF_EXT_PPP_PPTP BIT(2)
++#define IFF_EXT_PPP_L2TPV2 BIT(3)
++#define IFF_EXT_PPP_L2TPV3 BIT(4)
++#define IFF_EXT_TUN_TAP BIT(5)
++#endif
++
++static inline unsigned long ecm_netdev_priv_flags_ext(const struct net_device *dev)
++{
++	if (!dev || !dev->rtnl_link_ops || !dev->rtnl_link_ops->kind)
++		return 0;
++
++	if (!strcmp(dev->rtnl_link_ops->kind, "gretap"))
++		return IFF_EXT_GRE_V4_TAP | IFF_EXT_GRE_V6_TAP;
++
++	if (!strcmp(dev->rtnl_link_ops->kind, "ip6gretap"))
++		return IFF_EXT_GRE_V6_TAP;
++
++	return 0;
++}
++
++/* Linux 6.12 keeps PPP transport details behind the generic PPP channel
++ * boundary.  These exported compatibility entry points preserve ECM's
++ * old queries without exposing PPP's private struct ppp layout to modules. */
++struct ppp_channel;
++struct pppoe_opt;
++struct pptp_opt;
++extern int ecm_ppp_is_multilink(struct net_device *dev);
++extern int ecm_ppp_hold_channels(struct net_device *dev,
++				 struct ppp_channel **channels, int count);
++extern void ecm_ppp_release_channels(struct ppp_channel **channels, int count);
++extern int ecm_ppp_channel_get_protocol(struct ppp_channel *channel);
++extern void ecm_ppp_update_stats(struct net_device *dev, u64 rx_packets,
++				u64 rx_bytes, u64 tx_packets, u64 tx_bytes,
++				u64 rx_errors, u64 rx_dropped, u64 tx_errors, u64 tx_dropped);
++extern int ecm_pppoe_channel_addressing_get(struct ppp_channel *channel,
++					    struct pppoe_opt *addressing);
++extern int ecm_pptp_channel_addressing_get(struct pptp_opt *addressing,
++					  struct ppp_channel *channel);
++extern int ecm_pptp_session_find(struct pptp_opt *addressing, u16 call_id,
++					 __be32 daddr);
++extern void br_fdb_refresh(struct net_device *dev, const unsigned char *addr,
++				  u16 vid);
+-- 
+2.43.0

@@ -1,0 +1,58 @@
+Subject: [PATCH] net: ipv6: expose ECM compatibility wrappers
+
+The 6.12 IPv6 implementation still provides the operations used by the
+ECM interface, but keeps their implementation symbols private to vmlinux.
+Provide narrow GPL-only wrappers for the out-of-tree ECM module instead of
+exporting the generic internal symbols themselves.
+
+--- a/net/ipv6/ndisc.c
++++ b/net/ipv6/ndisc.c
+@@ -670,3 +670,15 @@ void ndisc_send_ns(struct net_device *dev, const struct in6_addr *solicit,
+ 	if (skb)
+ 		ndisc_send_skb(skb, daddr, saddr);
+ }
++
++void ecm_ndisc_send_ns(struct net_device *dev, const struct in6_addr *solicit,
++			const struct in6_addr *daddr, const struct in6_addr *saddr,
++			u64 nonce);
++
++void ecm_ndisc_send_ns(struct net_device *dev, const struct in6_addr *solicit,
++			const struct in6_addr *daddr, const struct in6_addr *saddr,
++			u64 nonce)
++{
++	ndisc_send_ns(dev, solicit, daddr, saddr, nonce);
++}
++EXPORT_SYMBOL_GPL(ecm_ndisc_send_ns);
+ 
+ void ndisc_send_rs(struct net_device *dev, const struct in6_addr *saddr,
+ 		   const struct in6_addr *daddr)
+--- a/net/ipv6/addrconf.c
++++ b/net/ipv6/addrconf.c
+@@ -989,4 +989,12 @@ void inet6_ifa_finish_destroy(struct inet6_ifaddr *ifp)
+ 	kfree_rcu(ifp, rcu);
+ }
++
++void ecm_in6_ifa_put(struct inet6_ifaddr *ifp);
++
++void ecm_in6_ifa_put(struct inet6_ifaddr *ifp)
++{
++	in6_ifa_put(ifp);
++}
++EXPORT_SYMBOL_GPL(ecm_in6_ifa_put);
+ 
+ static void addrconf_dad_stop(struct inet6_ifaddr *ifp, int dad_failed)
+@@ -2108,5 +2108,14 @@ struct inet6_ifaddr *ipv6_get_ifaddr(struct net *net, const struct in6_addr *addr,
+ 
+ 	return result;
+ }
++
++struct inet6_ifaddr *ecm_ipv6_get_ifaddr(struct net *net, const struct in6_addr *addr, struct net_device *dev, int strict);
++struct inet6_ifaddr *ecm_ipv6_get_ifaddr(struct net *net,
++					 const struct in6_addr *addr,
++					 struct net_device *dev, int strict)
++{
++	return ipv6_get_ifaddr(net, addr, dev, strict);
++}
++EXPORT_SYMBOL_GPL(ecm_ipv6_get_ifaddr);
+ 
+ /* Gets referenced address, destroys ifaddr */

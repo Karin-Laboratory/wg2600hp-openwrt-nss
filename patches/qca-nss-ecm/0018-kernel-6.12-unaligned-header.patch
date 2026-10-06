@@ -1,0 +1,283 @@
+From 6c8c2b8e0b7b4d7e8f7a2d9c1e6b4a0f Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 00:00:00 +0900
+Subject: [PATCH] kernel-6.12: use generic unaligned header
+
+The architecture-specific asm/unaligned.h header is no longer available
+for this Linux 6.12 target. The unaligned access helpers are exported
+through the generic linux/unaligned.h header.
+
+---
+--- a/ecm_tracker_udp.c
++++ b/ecm_tracker_udp.c
+@@ -33,1 +33,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_mscs.c
++++ b/ecm_classifier_mscs.c
+@@ -30,1 +30,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_listener.c
++++ b/ecm_db/ecm_db_listener.c
+@@ -31,1 +31,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/examples/ecm_pcc_test.c
++++ b/examples/ecm_pcc_test.c
+@@ -28,1 +28,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_multicast.c
++++ b/ecm_db/ecm_db_multicast.c
+@@ -32,1 +32,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_timer.c
++++ b/ecm_db/ecm_db_timer.c
+@@ -32,1 +32,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_connection.c
++++ b/ecm_db/ecm_db_connection.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_bond_notifier.c
++++ b/frontends/cmn/ecm_bond_notifier.c
+@@ -38,1 +38,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_host.c
++++ b/ecm_db/ecm_db_host.c
+@@ -31,1 +31,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_ipv4.c
++++ b/frontends/cmn/ecm_ipv4.c
+@@ -37,1 +37,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_iface.c
++++ b/ecm_db/ecm_db_iface.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_ipv6.c
++++ b/frontends/cmn/ecm_ipv6.c
+@@ -37,1 +37,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_mapping.c
++++ b/ecm_db/ecm_db_mapping.c
+@@ -31,1 +31,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db_node.c
++++ b/ecm_db/ecm_db_node.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_multicast_ipv4.c
++++ b/frontends/cmn/ecm_multicast_ipv4.c
+@@ -37,1 +37,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_db/ecm_db.c
++++ b/ecm_db/ecm_db.c
+@@ -32,1 +32,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_multicast_ipv6.c
++++ b/frontends/cmn/ecm_multicast_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_tracker.c
++++ b/ecm_tracker.c
+@@ -33,1 +33,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_non_ported_ipv4.c
++++ b/frontends/cmn/ecm_non_ported_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_non_ported_ipv6.c
++++ b/frontends/cmn/ecm_non_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_tracker_tcp.c
++++ b/ecm_tracker_tcp.c
+@@ -33,1 +33,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_ported_ipv4.c
++++ b/frontends/cmn/ecm_ported_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_default.c
++++ b/ecm_classifier_default.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/cmn/ecm_ported_ipv6.c
++++ b/frontends/cmn/ecm_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_dscp.c
++++ b/ecm_classifier_dscp.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_hyfi.c
++++ b/ecm_classifier_hyfi.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_pcc.c
++++ b/ecm_classifier_pcc.c
+@@ -42,1 +42,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_state.c
++++ b/ecm_state.c
+@@ -24,1 +24,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_conntrack_notifier.c
++++ b/ecm_conntrack_notifier.c
+@@ -39,1 +39,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_tracker_datagram.c
++++ b/ecm_tracker_datagram.c
+@@ -33,1 +33,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_multicast_ipv4.c
++++ b/frontends/nss/ecm_nss_multicast_ipv4.c
+@@ -37,1 +37,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_interface.c
++++ b/ecm_interface.c
+@@ -38,1 +38,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_multicast_ipv6.c
++++ b/frontends/nss/ecm_nss_multicast_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/ecm_classifier_nl.c
++++ b/ecm_classifier_nl.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_non_ported_ipv4.c
++++ b/frontends/nss/ecm_nss_non_ported_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_ported_ipv6.c
++++ b/frontends/nss/ecm_nss_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_non_ported_ipv6.c
++++ b/frontends/nss/ecm_nss_non_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_ipv4.c
++++ b/frontends/nss/ecm_nss_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_ipv4.c
++++ b/frontends/ppe/ecm_ppe_ipv4.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_ipv6.c
++++ b/frontends/nss/ecm_nss_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_ipv6.c
++++ b/frontends/ppe/ecm_ppe_ipv6.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/nss/ecm_nss_ported_ipv4.c
++++ b/frontends/nss/ecm_nss_ported_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_non_ported_ipv4.c
++++ b/frontends/ppe/ecm_ppe_non_ported_ipv4.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_ported_ipv4.c
++++ b/frontends/ppe/ecm_ppe_ported_ipv4.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_non_ported_ipv6.c
++++ b/frontends/ppe/ecm_ppe_non_ported_ipv6.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/ppe/ecm_ppe_ported_ipv6.c
++++ b/frontends/ppe/ecm_ppe_ported_ipv6.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_non_ported_ipv4.c
++++ b/frontends/sfe/ecm_sfe_non_ported_ipv4.c
+@@ -35,1 +35,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_multicast_ipv4.c
++++ b/frontends/sfe/ecm_sfe_multicast_ipv4.c
+@@ -37,1 +37,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_non_ported_ipv6.c
++++ b/frontends/sfe/ecm_sfe_non_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_multicast_ipv6.c
++++ b/frontends/sfe/ecm_sfe_multicast_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_ipv4.c
++++ b/frontends/sfe/ecm_sfe_ipv4.c
+@@ -33,1 +33,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_ported_ipv4.c
++++ b/frontends/sfe/ecm_sfe_ported_ipv4.c
+@@ -34,1 +34,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_ipv6.c
++++ b/frontends/sfe/ecm_sfe_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+--- a/frontends/sfe/ecm_sfe_ported_ipv6.c
++++ b/frontends/sfe/ecm_sfe_ported_ipv6.c
+@@ -36,1 +36,1 @@
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+-- 
+2.43.0
+

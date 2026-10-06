@@ -1,0 +1,16 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ButlerX <butlerx@localhost>
+Date: Mon, 5 Oct 2026 13:00:00 +0900
+Subject: [PATCH] qca-nss-ecm: declare Wi-Fi event lifecycle prototypes
+
+The functions are called from the interface lifecycle and must be declared
+in the shared ECM interface header under -Wmissing-prototypes.
+
+--- a/ecm_interface.h
++++ b/ecm_interface.h
+@@ -62,2 +62,5 @@
+ bool ecm_interface_is_pptp(struct sk_buff *skb, const struct net_device *out);
++struct rt6_info *ecm_interface_ipv6_route_lookup(struct net *netf, struct in6_addr *addr);
++int ecm_interface_wifi_event_start(void);
++int ecm_interface_wifi_event_stop(void);
+ bool ecm_interface_is_l2tp_packet_by_version(struct sk_buff *skb, const struct net_device *out, int ver);
