@@ -7,6 +7,7 @@ PKG_RELEASE:=1
 PKG_SOURCE_URL:=https://git.codelinaro.org/clo/qsdk/oss/lklm/qca-nss-ecm.git
 PKG_SOURCE_DATE:=2023-01-20
 PKG_SOURCE_PROTO:=git
+# Full source revision: db66c472e07990600bec9f01fb79e103540b0ca3
 PKG_SOURCE_VERSION:=db66c47
 PKG_MIRROR_HASH:=f8d8bd9235e4d5ed96bfb964090d84abccd7291d59b1da5d45fe58e64c55cdf1
 PKG_BUILD_PARALLEL:=1

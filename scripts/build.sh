@@ -1,18 +1,18 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 OPENWRT_DIR=${OPENWRT_DIR:-}
 NSS_FIRMWARE_DIR=${NSS_FIRMWARE_DIR:-}
 BUILD_LOG=${BUILD_LOG:-"$ROOT/build-state-$(date -u +%Y%m%dT%H%M%SZ).log"}
 OPENWRT_COMMIT=f0a60eee2fe051741c643ea6118718aae1ef17fb
+BUILD_JOBS=${BUILD_JOBS:-1}
 
 die() { echo "build.sh: $*" >&2; exit 2; }
 need_cmd() { command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"; }
 need_cmd git
 need_cmd make
 need_cmd sha256sum
-need_cmd unsquashfs
 
 [ -n "$OPENWRT_DIR" ] || die "set OPENWRT_DIR to a clean OpenWrt checkout"
 [ -d "$OPENWRT_DIR/.git" ] || die "OPENWRT_DIR is not a Git checkout: $OPENWRT_DIR"
@@ -20,6 +20,7 @@ need_cmd unsquashfs
 [ -n "$NSS_FIRMWARE_DIR" ] || die "set NSS_FIRMWARE_DIR; firmware blobs are not redistributed"
 actual_commit=$(git -C "$OPENWRT_DIR" rev-parse HEAD) || die "cannot read OpenWrt HEAD"
 [ "$actual_commit" = "$OPENWRT_COMMIT" ] || die "OpenWrt HEAD is $actual_commit, expected $OPENWRT_COMMIT (v25.12.5)"
+[ -z "$(git -C "$OPENWRT_DIR" status --porcelain --untracked-files=all)" ] || die "OPENWRT_DIR is not a clean checkout; refusing tracked, staged, or untracked files"
 [ ! -e "$OPENWRT_DIR/.config" ] || die "refusing an existing .config; use a fresh checkout"
 [ ! -d "$OPENWRT_DIR/build_dir" ] || die "refusing existing build_dir; use a fresh checkout"
 [ ! -d "$OPENWRT_DIR/staging_dir" ] || die "refusing existing staging_dir; use a fresh checkout"
@@ -68,19 +69,19 @@ echo "feeds: update -a" | tee -a "$BUILD_LOG"
 cp "$ROOT/config/wg2600hp.config.fragment" .config
 make defconfig 2>&1 | tee -a "$BUILD_LOG"
 ./scripts/diffconfig.sh 2>&1 | tee -a "$BUILD_LOG"
-make -j1 V=s 2>&1 | tee -a "$BUILD_LOG"
+make -j"$BUILD_JOBS" V=s 2>&1 | tee -a "$BUILD_LOG"
 
 target_dir=bin/targets/ipq806x/generic
-manifest=$(find "$target_dir" -maxdepth 1 -type f -name '*manifest' | head -1)
+manifest=$(find "$target_dir" -maxdepth 1 -type f -name '*manifest' -print -quit)
 [ -s "$manifest" ] || die "target manifest not generated"
-initramfs=$(find "$target_dir" -maxdepth 1 -type f -name '*initramfs-uImage' | head -1)
-sysupgrade=$(find "$target_dir" -maxdepth 1 -type f -name '*squashfs-sysupgrade.bin' | head -1)
+initramfs=$(find "$target_dir" -maxdepth 1 -type f -name '*initramfs-uImage' -print -quit)
+sysupgrade=$(find "$target_dir" -maxdepth 1 -type f -name '*squashfs-sysupgrade.bin' -print -quit)
 [ -s "$initramfs" ] || die "initramfs-uImage not generated"
 [ -s "$sysupgrade" ] || die "squashfs-sysupgrade.bin not generated"
 for package in qca-nss-drv qca-nss-ecm-standard qca-nss-gmac; do
     grep -q "$package" "$manifest" || die "$package missing from manifest"
 done
-rootfs=$(find build_dir/target-* -type d -path '*/root-*' | head -1)
+rootfs=$(find build_dir/target-* -type d -path '*/root-*' -print -quit)
 [ -n "$rootfs" ] || die "root filesystem staging directory not found"
 for item in qca-nss-drv.ko qca-nss-gmac.ko ecm.ko; do
     find "$rootfs" -name "$item" -print -quit | grep . >/dev/null || die "$item missing from root filesystem"

@@ -1,12 +1,14 @@
 # Status
 
-最終更新: 2026-10-05 JST（公開整理: 2026-10-07）
+最終更新: 2026-10-07 JST
 
 ## 判定
 
-`BUILD PASS / HARDWARE TEST NOT RUN`
+`BUILD PASS / CLEAN-ROOM BUILD PASS / HARDWARE TEST NOT RUN`
 
 ビルドシステム上の kernel、DTB、modules、NSS three modules、APK、initramfs、sysupgrade生成は成功した。これは実機の起動・動作・互換性を保証しない。
+
+最新のclean-room記録は [`BUILD-RESULT-20261007.txt`](BUILD-RESULT-20261007.txt) である。2026-10-05のInitial buildとは分けて管理している。
 
 ## 実施していないこと
 

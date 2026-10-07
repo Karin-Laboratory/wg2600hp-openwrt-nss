@@ -1,0 +1,4 @@
+# Initial build — 2026-10-05 JST; image files are not published.
+# date | build type | image | size (bytes) | SHA256
+2026-10-05 | initial | openwrt-ipq806x-generic-nec_wg2600hp-initramfs-uImage | 7938306 | a3219fabd11a71917b9857ee731d47706468629a06969c20acf17a28b3c662fd
+2026-10-05 | initial | openwrt-ipq806x-generic-nec_wg2600hp-squashfs-sysupgrade.bin | 8323615 | 833d4b2772bafef9360e88e8e89c739ec223d7c72a32bdf5bf5e2c8c1b2e8122

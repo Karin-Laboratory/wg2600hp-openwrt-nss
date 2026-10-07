@@ -33,9 +33,9 @@ NEC Aterm WG2600HP（IPQ8064）向けに、OpenWrt 25.12.5 / Linux 6.12.94へ、
 | Kernel | Linux 6.12.94 |
 | Target | `ipq806x/generic`, `DEVICE_nec_wg2600hp` |
 | Toolchain | GCC 14.3.0, musl, `arm_cortex-a15_neon-vfpv4` |
-| NSS driver | qca-nss-drv `3cfb9f43` |
+| NSS driver | qca-nss-drv `3cfb9f43536e77ae05a141cce18a242b85e834ab` |
 | NSS GMAC | qca-nss-gmac `171767947467662f2407d0cfff26dfb136c3fb4a` |
-| NSS ECM | qca-nss-ecm `db66c47` |
+| NSS ECM | qca-nss-ecm `db66c472e07990600bec9f01fb79e103540b0ca3` |
 
 `f0a60eee2fe051741c643ea6118718aae1ef17fb` はOpenWrt v25.12.5のrelease commitで、`r33051-f5dae5ece4` はそのtreeに埋め込まれたVERSION_CODEである。同じreleaseを指すため、両者は矛盾しない。
 
@@ -44,9 +44,9 @@ NEC Aterm WG2600HP（IPQ8064）向けに、OpenWrt 25.12.5 / Linux 6.12.94へ、
 | [OpenWrt](https://github.com/openwrt/openwrt) | v25.12.5 | `f0a60eee2fe051741c643ea6118718aae1ef17fb` | clean base tree |
 | [ACwifidude/openwrt](https://github.com/ACwifidude/openwrt) | `openwrt-23.05-nss-qsdk11` | `cd265bb1a5229aec79aa675d9c2f0289ca75e684` | WG2600HP/IPQ806x DTS and 5.15 integration reference |
 | [ACwifidude/nss-packages](https://github.com/ACwifidude/nss-packages) | `NSS-11.2-K5.15` | `2fcff66d5279156bc67034a3547528a5fd48b0b2` | package layout, Config.in, firmware record, 11.0 IPQ806x driver selection |
-| Codelinaro/QSDK `nss-drv` | source date 2020-03-20 | `3cfb9f43` | driver source |
+| Codelinaro/QSDK `nss-drv` | source date 2020-03-20 | `3cfb9f43536e77ae05a141cce18a242b85e834ab` | driver source |
 | Codelinaro/QSDK `nss-gmac` | source date 2021-04-20 | `171767947467662f2407d0cfff26dfb136c3fb4a` | GMAC source |
-| Codelinaro/QSDK `qca-nss-ecm` | source date 2023-01-20 | `db66c47` | ECM source |
+| Codelinaro/QSDK `qca-nss-ecm` | source date 2023-01-20 | `db66c472e07990600bec9f01fb79e103540b0ca3` | ECM source |
 | [asvio/nbg7815-nss](https://github.com/asvio/nbg7815-nss) | default branch at audit | `82f5118bd4eea40c64de36b967c89aea007c8cc6` | architecture and compatibility discussion only; IPQ807x/IPQ6018, not WG2600HP source |
 
 これらは、各componentのsource・patch・設計資料の出典または参考実装である。本リポジトリがそれらの上流であること、または上流の動作保証を引き継ぐことを意味しない。
@@ -76,20 +76,23 @@ OpenWrt全体のコピーは収録していません。clean checkoutへ、対�
 - [Porting notes](docs/PORTING-NOTES.md)
 - [Patchset provenance](docs/PATCHSET.md)
 - [Hardware test TODO](docs/HARDWARE-TEST-TODO.md)
-- [Build result 2026-10-05](docs/BUILD-RESULT-20261005.txt)
-- [Build result 2026-10-07](docs/BUILD-RESULT-20261007.txt)
+- [Initial build result 2026-10-05](docs/BUILD-RESULT-20261005.txt)
+- [Clean-room build result 2026-10-07](docs/BUILD-RESULT-20261007.txt)
 - [Firmware provenance](references/FIRMWARE.md)
-- [Recorded image SHA256](checksums/IMAGE-SHA256SUMS)
+- [Initial image SHA256 (2026-10-05)](checksums/IMAGE-SHA256SUMS-20261005)
+- [Clean-room image SHA256 (2026-10-07)](checksums/IMAGE-SHA256SUMS-20261007)
 
 ## 生成確認記録
 
-実機未検証のため、binary本体は公開しません。サイズとSHA256だけを `checksums/IMAGE-SHA256SUMS` および `docs/BUILD-RESULT-20261005.txt` に記録しています。
+実機未検証のため、binary本体は公開しません。サイズとSHA256はbuild日付別のchecksum記録に保存しています。
 
 | 生成物 | サイズ | SHA256 |
 |---|---:|---|
-| initramfs-uImage | 7,938,306 | `a3219fabd11a71917b9857ee731d47706468629a06969c20acf17a28b3c662fd` |
-| squashfs-sysupgrade.bin | 8,323,615 | `833d4b2772bafef9360e88e8e89c739ec223d7c72a32bdf5bf5e2c8c1b2e8122` |
+| initramfs-uImage | 7,933,650 | `28856e3c802288a7967dcfba409d28733d43b6b2f729ea6655f920c171d5a6f8` |
+| squashfs-sysupgrade.bin | 8,323,615 | `63b9a89538299ddcbc10d3ecfae32ca97dbb190eed1ae93cacbbd7f1391bec05` |
 | 最終DTS統合patch | — | `d477947eaf13bc9fb4d766e175992e82967d7f2e03c8374e7e0b3bb37cf15f86` |
+
+ここでの主記録は2026-10-07 Clean-room buildであり、2026-10-05はInitial buildとして別記録に保持する。再現性は同一commit・patch・package・config・firmware provenanceと必須成果物で定義しており、ビルド時刻や圧縮順序等によりimage hashが異なること自体は失敗を意味しない。
 
 ## 未検証事項と既知の問題
 

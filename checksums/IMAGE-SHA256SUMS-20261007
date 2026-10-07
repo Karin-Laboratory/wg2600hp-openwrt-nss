@@ -1,0 +1,4 @@
+# Clean-room build — 2026-10-07 JST; image files are not published.
+# date | build type | image | size (bytes) | SHA256
+2026-10-07 | clean-room | openwrt-ipq806x-generic-nec_wg2600hp-initramfs-uImage | 7933650 | 28856e3c802288a7967dcfba409d28733d43b6b2f729ea6655f920c171d5a6f8
+2026-10-07 | clean-room | openwrt-ipq806x-generic-nec_wg2600hp-squashfs-sysupgrade.bin | 8323615 | 63b9a89538299ddcbc10d3ecfae32ca97dbb190eed1ae93cacbbd7f1391bec05

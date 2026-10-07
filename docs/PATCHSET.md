@@ -1,6 +1,20 @@
 # Patchset provenance
 
-この一覧は公開patchを、移植時に作成・修正したものと既存lineage由来のものに分けるための監査台帳である。patch本文の先頭に上流commitがある場合はそれを優先し、ない場合は package Makefile と取得元revisionを根拠にする。
+この一覧は公開patchを、移植時に作成・修正したものと既存lineage由来のものに分けるための監査台帳である。`unchanged`は元patch本文との一致を確認できた場合だけを指し、同じfilenameや機能だけではそう分類しない。現行treeでは、既存lineageを取り込んだpatchも現行package/Linux 6.12へ適用・調整したものは`modified`、本repoで新規作成したものは`newly created`とする。patch本文の先頭に上流commitがある場合はそれを優先し、ない場合は package Makefile と取得元revisionを根拠にする。
+
+## 追加の分類台帳
+
+この公開treeで元patchとの全文一致を確認できた`unchanged`はない。従って、従来の`unchanged/modified`表記は「lineageは追えるが現行本文の一致は未確認」という意味であり、実際の分類は`modified`として読む。指定範囲は次のとおりである。
+
+| 対象 | 分類 | 確認できた元repository / commit |
+|---|---|---|
+| `0008-QSDK-11.2.patch` | modified | [Codelinaro nss-drv](https://git.codelinaro.org/clo/qsdk/oss/lklm/nss-drv/-/commit/3cfb9f43536e77ae05a141cce18a242b85e834ab) `3cfb9f43536e77ae05a141cce18a242b85e834ab`; patch本文の全文一致は未確認 |
+| qca-nss-drv Linux 6.12群 `0016`〜`0022`, `0028` | modified | source revision `3cfb9f43536e77ae05a141cce18a242b85e834ab`;個別元commitは不明 |
+| qca-nss-ecm Linux 6.12群（存在する`0016`〜`0054`、`902`, `903`） | modified | source revision `db66c472e07990600bec9f01fb79e103540b0ca3`;個別元commitは不明 |
+| qca-nss-gmac Linux 6.12群 `0011`〜`0013` | modified | source revision `171767947467662f2407d0cfff26dfb136c3fb4a`;個別元commitは不明 |
+| `999-005-wg2600hp-nss-minimal-6.12.patch` | newly created | WG2600HP統合として本repoで作成。SHA256 `d477947eaf13bc9fb4d766e175992e82967d7f2e03c8374e7e0b3bb37cf15f86` |
+
+上流source revisionとpatch本文の元commitは別概念であり、確認できないものを推測していない。
 
 | patch filename | component | origin | original repository/commit | unchanged / modified / newly created | Linux 6.12 portとの関係 |
 |---|---|---|---|---|---|
